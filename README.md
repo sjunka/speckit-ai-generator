@@ -13,6 +13,8 @@ That is the whole setup. No `specify init`, no `uv`, nothing to configure.
 
 > **Guía en español:** [`docs/GUIA-SPEC-KIT.md`](docs/GUIA-SPEC-KIT.md) — el paso
 > a paso completo, fase por fase, con los comandos y cómo verificar cada uno.
+> También en [PDF](docs/GUIA-SPEC-KIT.pdf) (8 páginas) para repartir impreso.
+> Si editas el `.md`, regenera el PDF con `node scripts/build-guide-pdf.mjs`.
 
 ## What is here
 
