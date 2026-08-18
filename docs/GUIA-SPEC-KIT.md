@@ -78,7 +78,7 @@ El archivo `docs/REPLICATION-APPENDIX.md` **no se lee**. Es la respuesta
 correcta: tiene los 80 archivos del proyecto original. Sirve para comparar
 cuando dudas de algo.
 
-## 4. Primer ticket
+## 4. Probar con un solo ticket
 
 ```
 /speckit-implement T001
@@ -91,7 +91,7 @@ cuando dudas de algo.
 - El ticket es `T001`, **no** "ticket 1". Con la T y con tres dígitos, igual que
   está escrito en `tasks.md`.
 - Escribir un solo ticket corre **solo ese ticket**. Para hacer un bloque
-  entero, se le dice la fase: `/speckit-implement solo la Fase 3 (T010 a T017)`.
+  entero, se le dice la fase: `/speckit-implement fase 2`.
 - **Nunca lo corras sin argumento.** `/speckit-implement` a secas construye los
   39 tickets de golpe, incluidos los de tus compañeros.
 
@@ -105,10 +105,10 @@ librerías. Es la Fase 1 completa, un solo ticket. Espera a que termine.
 Este ticket ya se probó y funciona: crea Next.js 16.3.1 con React 19.2.8 y
 Tailwind 4, que es justo lo que pide el plan.
 
-## 5. La base (T002 a T009)
+## 5. La base (la fase 1 completa)
 
 ```
-/speckit-implement solo la Fase 2 (T002 a T009)
+/speckit-implement fase 1
 ```
 
 ### Qué se construye aquí, en cristiano
@@ -160,11 +160,10 @@ Cada uno, en su propio computador:
 ```bash
 git pull origin main
 git checkout -b 001-frontend
-/speckit-implement solo la Fase 3 (T010 a T017)
+/speckit-implement fase 2
 ```
 
-Johan usa `001-backend` y `solo la Fase 4 (T018 a T025)`. Tomás usa
-`001-dashboard` y `solo la Fase 5 (T026 a T030)`.
+Johan usa `001-backend` y `fase 3`. Tomás usa `001-dashboard` y `fase 4`.
 
 **¿Por qué no chocan?** Porque cada grupo toca archivos completamente distintos.
 En `tasks.md` está escrito qué archivos son de cada quien y cuáles no puede
@@ -183,7 +182,7 @@ Los comandos exactos de cada persona, momento a momento, están más abajo en
 ## 7. Juntar todo (T031 a T039)
 
 ```
-/speckit-implement solo la Fase 6 (T031 a T039)
+/speckit-implement fase 5
 ```
 
 Aquí se juntan las tres ramas y se arregla lo que se rompió.
@@ -225,7 +224,7 @@ mirando media hora.
 git clone https://github.com/sjunka/speckit-ai-generator.git
 cd speckit-ai-generator
 
-/speckit-implement solo la Fase 1 y la Fase 2 (T001 a T009)
+/speckit-implement fase 1
 ```
 
 Son nueve tickets. El agente los hace seguidos y marca cada uno cuando termina.
@@ -266,21 +265,21 @@ Cada uno en su computador, al mismo tiempo:
 # Mateo
 git pull origin main
 git checkout -b 001-frontend
-/speckit-implement solo la Fase 3 (T010 a T017)
+/speckit-implement fase 2
 ```
 
 ```bash
 # Johan
 git pull origin main
 git checkout -b 001-backend
-/speckit-implement solo la Fase 4 (T018 a T025)
+/speckit-implement fase 3
 ```
 
 ```bash
 # Tomás
 git pull origin main
 git checkout -b 001-dashboard
-/speckit-implement solo la Fase 5 (T026 a T030)
+/speckit-implement fase 4
 ```
 
 Esta es la parte que vale la pena mostrar: tres agentes escribiendo código a la
