@@ -43,7 +43,7 @@ Project Structure section.
 necesitan. **⚠️ BLOQUEA A TODOS**: ninguna otra fase puede empezar hasta que
 esta esté en `main`.
 
-*Owns: everything not owned by Fases 2, 3 and 4.*
+*Dueño de: todo lo que no pertenece a las Fases 2, 3 y 4.*
 
 Nothing outside this phase edits `package.json`, `vitest.config.mjs`,
 `vitest.setup.js`, `next.config.mjs`, `jsconfig.json`, `postcss.config.mjs` or
@@ -88,8 +88,8 @@ of committing it.
 
 **Independent Test**: The whole capture-to-result journey works against mock handlers with no backend code written and no network available.
 
-*Owns: `app/page.jsx`, `app/sign-in/[[...sign-in]]/page.jsx`, `app/capture/page.jsx`, `app/result/[jobId]/page.jsx`, `components/capture/*`, `components/result/*`, `hooks/*`, `proxy.js`, and the colocated tests.*
-*Never touches: `lib/`, `app/api/`, `app/dashboard/`.*
+*Dueño de: `app/page.jsx`, `app/sign-in/[[...sign-in]]/page.jsx`, `app/capture/page.jsx`, `app/result/[jobId]/page.jsx`, `components/capture/*`, `components/result/*`, `hooks/*`, `proxy.js`, y sus pruebas.*
+*Nunca toca: `lib/`, `app/api/`, `app/dashboard/`.*
 
 - [ ] T010 [US1] Test-drive `proxy.js` at the repository root: anonymous requests to capture, result and dashboard are protected, the landing route stays public, and a signed-in visitor at `/` is redirected to `/capture`. Then implement it with `clerkMiddleware` and `createRouteMatcher(["/capture(.*)", "/result(.*)", "/dashboard(.*)"])`. Next 16 renamed `middleware.js` to `proxy.js` and the export with it — a file called `middleware.js` is silently ignored (trap 2). Take the matcher regex from the appendix; it is a long negative pattern, not a route list (trap 14)
 - [ ] T011 [US1] Build `app/page.jsx` at 360px first, then widened. Assert the hero, the single sentence, exactly one call to action, and that no features grid, FAQ or pricing exists
@@ -110,9 +110,9 @@ of committing it.
 
 **Independent Test**: Every route and library module passes with no keys, no network and no database, against mocked providers and the in-memory collection.
 
-*Owns: `lib/db.js`, `lib/blob.js`, `lib/higgsfield.js`, `app/api/image/route.js`, `app/api/video/route.js`, `app/api/video/[id]/route.js`, `app/api/video/[id]/file/route.js`, and their tests.*
-*Never touches: any screen, `app/dashboard/`, `app/api/settings/`.*
-*Imports `lib/settings.js` and `lib/models.js` by their Contracts signatures — mock them until Fase 4 lands.*
+*Dueño de: `lib/db.js`, `lib/blob.js`, `lib/higgsfield.js`, `app/api/image/route.js`, `app/api/video/route.js`, `app/api/video/[id]/route.js`, `app/api/video/[id]/file/route.js`, y sus pruebas.*
+*Nunca toca: ninguna pantalla, `app/dashboard/`, `app/api/settings/`.*
+*Usa de otra fase: `lib/settings.js` y `lib/models.js` según las firmas de Contracts — mockéalos hasta que llegue la Fase 4.*
 
 - [ ] T018 [P] Test-drive `lib/db.js`: the client is cached on `globalThis` and a second call constructs nothing. Then implement it and `generations()`
 - [ ] T019 [P] Implement `lib/blob.js`: `store` puts to Vercel Blob and returns the public URL, with a **dev-only** fallback writing to `public/uploads` when there is no token and `NODE_ENV !== "production"`. Comment the ceiling — Vercel's filesystem is ephemeral and a photo stored this way is unreachable by the provider unless the dev server is tunnelled (trap 5)
@@ -133,9 +133,9 @@ of committing it.
 
 **Independent Test**: As the owner, toggle generation off and confirm the next generation call is refused; toggle it back on and confirm it resumes — no redeploy.
 
-*Owns: `lib/settings.js`, `lib/models.js`, `app/api/settings/route.js`, `app/dashboard/page.jsx`, `components/dashboard/*`, `.env.local.example`, and their tests.*
-*Never touches: `lib/db.js`, `lib/higgsfield.js`, any generation route, any screen from Fase 2.*
-*Imports `lib/db.js` by its Contracts signature and `components/ui/*` from Fase 1 — mock `db` until Fase 3 lands.*
+*Dueño de: `lib/settings.js`, `lib/models.js`, `app/api/settings/route.js`, `app/dashboard/page.jsx`, `components/dashboard/*`, `.env.local.example`, y sus pruebas.*
+*Nunca toca: `lib/db.js`, `lib/higgsfield.js`, ninguna ruta de generación, ninguna pantalla de la Fase 2.*
+*Usa de otra fase: `lib/db.js` según su firma de Contracts, y `components/ui/*` de la Fase 1 — mockea `db` hasta que llegue la Fase 3.*
 
 - [ ] T026 [P] [US4] Write `lib/models.js`: the two per-asset cost constants, fixed in the module, never fetched
 - [ ] T027 [US4] Test-drive `lib/settings.js`: `getSettings` returning the stored record and defaulting to `{ enabled: true, videoQuality: "lite" }` when none exists; `assertEnabled` throwing a `503 "Generation is paused"` when disabled and passing through otherwise; `isOwner` comparing against `OWNER_ID`

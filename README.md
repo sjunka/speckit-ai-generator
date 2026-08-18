@@ -152,7 +152,7 @@ La descripción larga de cada ticket, con las rutas de archivo exactas, está en
 |---|---|---|---|
 | 1 | Sergio | Abre `specs/` y `tasks.md` | Nadie escribió el código: está descrito aquí y el agente lo construye |
 | 2 | Los tres | Corren su fase al mismo tiempo | Tres personas, un proyecto, sin pisarse |
-| 3 | Sergio | Muestra los bloques *Owns / Never touches* | Cada fase declara qué archivos toca; ninguno se repite |
+| 3 | Sergio | Muestra las listas *Dueño de / Nunca toca* de dos fases | Ningún archivo aparece en dos listas: por eso no chocan |
 | 4 | Los tres | Suben su rama | |
 | 5 | Sergio | Merge y `fase 5` | El T032 comprueba que las piezas encajan antes de creerle a las pruebas |
 | 6 | Todos | `npm run dev` y el recorrido en el celular | Foto, imagen, video, descarga |
