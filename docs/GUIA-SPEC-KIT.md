@@ -84,14 +84,16 @@ cuando dudas de algo.
 /speckit-implement T001
 ```
 
-**Tres cosas que se confunden mucho:**
+**Cuatro cosas que se confunden mucho:**
 
 - El comando es `/speckit-implement`, **no** `/implement`. Spec Kit le pone el
   prefijo `speckit-` a todos sus comandos para no chocar con otras herramientas.
 - El ticket es `T001`, **no** "ticket 1". Con la T y con tres dígitos, igual que
   está escrito en `tasks.md`.
-- Se corre **un ticket a la vez**. Espera a que termine antes de lanzar el
-  siguiente.
+- Escribir un solo ticket corre **solo ese ticket**. Para hacer un bloque
+  entero, se le dice la fase: `/speckit-implement Phase 3 only (T010 to T017)`.
+- **Nunca lo corras sin argumento.** `/speckit-implement` a secas construye los
+  39 tickets de golpe, incluidos los de tus compañeros.
 
 Esto crea el proyecto de Next.js desde cero. Espera a que termine.
 
@@ -104,15 +106,18 @@ Tailwind 4, que es justo lo que pide el plan.
 
 ## 5. La base (T002 a T009)
 
-Ocho tickets más, uno por uno:
+Ocho tickets más. En vez de escribirlos uno por uno, se le pide la fase
+completa:
 
 ```
-/speckit-implement T002
-/speckit-implement T003
+/speckit-implement Phase 2 only (T002 to T009)
 ```
 
-…y así hasta el T009. Aquí se construyen los colores, la tipografía, los
-botones, y la configuración de las pruebas.
+Aquí se construyen los colores, la tipografía, los botones, y la configuración
+de las pruebas.
+
+Si se atora en alguno, córrelo suelto para aislar el problema:
+`/speckit-implement T005`.
 
 **Cómo saber que salió bien:**
 
@@ -138,9 +143,12 @@ Cada uno, en su propio computador:
 
 ```bash
 git pull origin main
-git checkout -b 001-frontend     # o 001-backend, o 001-dashboard
-/speckit-implement T010          # o T018, o T026
+git checkout -b 001-frontend
+/speckit-implement Phase 3 only (T010 to T017)
 ```
+
+Johan usa `001-backend` y `Phase 4 only (T018 to T025)`. Tomás usa
+`001-dashboard` y `Phase 5 only (T026 to T030)`.
 
 **¿Por qué no chocan?** Porque cada grupo toca archivos completamente distintos.
 En `tasks.md` está escrito qué archivos son de cada quien y cuáles no puede
@@ -159,10 +167,10 @@ Los comandos exactos de cada persona, momento a momento, están más abajo en
 ## 7. Juntar todo (T031 a T039)
 
 ```
-/speckit-implement T031
+/speckit-implement Phase 6 only (T031 to T039)
 ```
 
-…hasta el T039. Aquí se juntan las tres ramas y se arregla lo que se rompió.
+Aquí se juntan las tres ramas y se arregla lo que se rompió.
 
 **El ticket importante de esta parte es el T032.** Mientras trabajaban por
 separado, la persona A probó su código contra un backend falso. Ahora hay que
@@ -201,18 +209,13 @@ mirando media hora.
 git clone https://github.com/sjunka/speckit-ai-generator.git
 cd speckit-ai-generator
 
-/speckit-implement T001
-/speckit-implement T002
-/speckit-implement T003
-/speckit-implement T004
-/speckit-implement T005
-/speckit-implement T006
-/speckit-implement T007
-/speckit-implement T008
-/speckit-implement T009
+/speckit-implement Phase 1 and Phase 2 only (T001 to T009)
 ```
 
-Uno por uno, esperando a que cada uno termine. Cuando acaben los nueve:
+Son nueve tickets. El agente los hace seguidos y marca cada uno cuando termina.
+Si se atora en alguno, córrelo suelto para aislarlo: `/speckit-implement T005`.
+
+Cuando acaben los nueve:
 
 ```bash
 npm run lint && npm test && npm run build
@@ -247,21 +250,21 @@ Cada uno en su computador, al mismo tiempo:
 # Mateo
 git pull origin main
 git checkout -b 001-frontend
-/speckit-implement T010
+/speckit-implement Phase 3 only (T010 to T017)
 ```
 
 ```bash
 # Johan
 git pull origin main
 git checkout -b 001-backend
-/speckit-implement T018
+/speckit-implement Phase 4 only (T018 to T025)
 ```
 
 ```bash
 # Tomás
 git pull origin main
 git checkout -b 001-dashboard
-/speckit-implement T026
+/speckit-implement Phase 5 only (T026 to T030)
 ```
 
 Esta es la parte que vale la pena mostrar: tres agentes escribiendo código a la
@@ -328,6 +331,7 @@ frente al profesor.
 |---|---|
 | `Feature directory not found` | Falta `.specify/feature.json`. Ver el paso 2 |
 | El comando `/speckit-implement` no existe | Estás fuera de la carpeta del repo, o usas otro agente que no es Claude Code |
+| El agente empieza a construir tickets que no son tuyos | Corriste `/speckit-implement` sin argumento. Detenlo, descarta los cambios, y vuelve a correrlo diciendo tu fase |
 | El agente reescribe `tasks.md` | Alguien corrió `/speckit-tasks`. Reviértelo. Ese archivo no se regenera nunca |
 | Un botón sale sin estilos | Error 16 de la sección §10 |
 | Una clase de Tailwind no hace nada | Error 15 de la sección §10. Tailwind no avisa cuando te equivocas de nombre |

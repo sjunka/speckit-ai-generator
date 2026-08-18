@@ -61,63 +61,89 @@ y los sube a `main`. Hasta que eso no esté, los otros tres no pueden empezar.
 
 ### El comando
 
-Uno solo, y siempre igual:
-
 ```
-/speckit-implement T001
+/speckit-implement T010
 ```
 
-Se cambia el número por el ticket que toque. Tres cosas que se confunden:
+Ese comando corre **un solo ticket**, el T010. Como cada uno tiene un bloque de
+varios, hay dos formas de usarlo.
+
+**Forma A — todo tu bloque de una (la que usamos):**
+
+```
+/speckit-implement Phase 3 only (T010 to T017)
+```
+
+El agente trabaja los ocho tickets seguidos, marcando cada uno como hecho.
+
+**Forma B — ticket por ticket:**
+
+```
+/speckit-implement T010
+/speckit-implement T011
+```
+
+Más lento, pero si algo falla sabes exactamente en cuál. Úsala cuando la forma A
+se atore.
+
+### Cuidado: nunca lo corras sin argumento
+
+```
+/speckit-implement          ← NO
+```
+
+Sin argumento, el comando construye **los 39 tickets**: los tuyos y los de todos
+los demás. Se acaba el trabajo en paralelo y se pisan entre ustedes. Siempre
+dile qué fase o qué ticket te toca.
+
+### Dos cosas más que se confunden
 
 - El comando es **`/speckit-implement`**, no `/implement`. Spec Kit le pone el
   prefijo `speckit-` a todos sus comandos.
-- El ticket es **`T001`**, no "ticket 1". Con la T y con tres dígitos, tal como
-  está escrito en `tasks.md`.
-- Se corre **un ticket a la vez**, esperando a que termine antes del siguiente.
+- El ticket es **`T001`**, no "ticket 1". Con la T y tres dígitos, tal como está
+  escrito en `tasks.md`.
 
 ### Qué corre cada uno
 
+Las fases de `tasks.md` coinciden exacto con el reparto:
+
 ```bash
-# Sergio — antes de la presentación, uno por uno
-/speckit-implement T001
-/speckit-implement T002
-/speckit-implement T003
-/speckit-implement T004
-/speckit-implement T005
-/speckit-implement T006
-/speckit-implement T007
-/speckit-implement T008
-/speckit-implement T009
+# Sergio — antes de la presentación
+/speckit-implement Phase 1 and Phase 2 only (T001 to T009)
+
 npm run lint && npm test && npm run build
 git add -A && git commit -m "Base del proyecto" && git push origin main
 ```
 
 ```bash
-# Mateo — T010 a T017
+# Mateo — las pantallas
 git pull origin main
 git checkout -b 001-frontend
-/speckit-implement T010
+/speckit-implement Phase 3 only (T010 to T017)
+git add -A && git commit -m "Frontend" && git push -u origin 001-frontend
 ```
 
 ```bash
-# Johan — T018 a T025
+# Johan — el backend
 git pull origin main
 git checkout -b 001-backend
-/speckit-implement T018
+/speckit-implement Phase 4 only (T018 to T025)
+git add -A && git commit -m "Backend" && git push -u origin 001-backend
 ```
 
 ```bash
-# Tomás — T026 a T030
+# Tomás — el dashboard y las cuentas
 git pull origin main
 git checkout -b 001-dashboard
-/speckit-implement T026
+/speckit-implement Phase 5 only (T026 to T030)
+git add -A && git commit -m "Dashboard" && git push -u origin 001-dashboard
 ```
 
 ```bash
-# Sergio otra vez — juntar todo, T031 a T039
+# Sergio otra vez — juntar todo
 git checkout main
 git merge 001-frontend 001-backend 001-dashboard
-/speckit-implement T032
+/speckit-implement Phase 6 only (T031 to T039)
 npm test
 npm run dev
 ```
