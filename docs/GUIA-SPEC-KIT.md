@@ -287,7 +287,7 @@ vez, en el mismo proyecto, sin chocar.
 
 **Momento 3 — Sergio explica mientras los agentes trabajan**
 
-Abre `tasks.md` y muestra las listas *Dueño de* y *Nunca toca*. Ahí
+Abre `tasks.md` y muestra los bloques `Owns` y `Never touches`. Ahí
 está la razón de que no choquen: ningún archivo aparece en dos listas.
 
 **Momento 4 — cada uno sube su rama**

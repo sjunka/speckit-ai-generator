@@ -148,14 +148,20 @@ La descripción larga de cada ticket, con las rutas de archivo exactas, está en
 
 ## Guion de la presentación
 
-| # | Quién | Qué hace | Qué dice |
+| # | Quién | Qué hace | Qué mostrar |
 |---|---|---|---|
-| 1 | Sergio | Abre `specs/` y `tasks.md` | Nadie escribió el código: está descrito aquí y el agente lo construye |
-| 2 | Los tres | Corren su fase al mismo tiempo | Tres personas, un proyecto, sin pisarse |
-| 3 | Sergio | Muestra las listas *Dueño de / Nunca toca* de dos fases | Ningún archivo aparece en dos listas: por eso no chocan |
+| 1 | Sergio | Explica que nadie escribió el código: está descrito y el agente lo construye | [`spec.md`](specs/001-ai-media-generator/spec.md) y [`tasks.md`](specs/001-ai-media-generator/tasks.md) |
+| 2 | Los tres | Corren su fase al mismo tiempo | Las tres pantallas a la vez |
+| 3 | Sergio | Señala los bloques `Owns` y `Never touches` de dos fases distintas | [`tasks.md`](specs/001-ai-media-generator/tasks.md) |
 | 4 | Los tres | Suben su rama | |
-| 5 | Sergio | Merge y `fase 5` | El T032 comprueba que las piezas encajan antes de creerle a las pruebas |
-| 6 | Todos | `npm run dev` y el recorrido en el celular | Foto, imagen, video, descarga |
+| 5 | Sergio | Merge y `fase 5` | [`plan.md`](specs/001-ai-media-generator/plan.md), sección *Contracts* |
+| 6 | Todos | `npm run dev` y el recorrido en el celular | La app |
+
+**La frase del momento 3:** cada fase declara de qué archivos es dueña (`Owns`)
+y cuáles no toca (`Never touches`). Ningún archivo aparece en dos listas, así
+que dos personas nunca editan lo mismo. Lo que una fase necesita de otra lo usa
+por la firma acordada en *Contracts* y lo reemplaza por un doble hasta que la
+otra rama llega — por eso nadie espera a nadie.
 
 Cierre: de una especificación escrita a una app funcionando, con el trabajo
 repartido entre cuatro personas.
