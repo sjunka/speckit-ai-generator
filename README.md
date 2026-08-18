@@ -7,13 +7,13 @@ El código no existe todavía. Está descrito en `specs/` y el agente lo constru
 
 ## Tu comando
 
-| Quién | Comando |
-|---|---|
-| **Sergio** | `/speckit-implement fase 1` |
-| **Mateo** | `/speckit-implement fase 2` |
-| **Johan** | `/speckit-implement fase 3` |
-| **Tomás** | `/speckit-implement fase 4` |
-| **Sergio** al final | `/speckit-implement fase 5` |
+| Quién | Comando | Rama |
+|---|---|---|
+| **Sergio** | `/speckit-implement fase 1` | `main` |
+| **Mateo** | `/speckit-implement fase 2` | `001-frontend` |
+| **Johan** | `/speckit-implement fase 3` | `001-backend` |
+| **Tomás** | `/speckit-implement fase 4` | `001-dashboard` |
+| **Sergio** al final | `/speckit-implement fase 5` | `main` |
 
 **Sergio va primero.** Los otros tres no pueden empezar hasta que sus tickets
 estén en `main`. Después, los tres corren al mismo tiempo.
@@ -27,26 +27,44 @@ estén en `main`. Después, los tres corren al mismo tiempo.
 
 ## Qué hace cada quien
 
+Cada uno copia su bloque. El nombre está arriba y la rama va escrita completa.
+
 ```bash
-# Sergio, antes de la presentación
+# ── SERGIO ── antes de la presentación, en main
+git checkout main
 /speckit-implement fase 1
 npm run lint && npm test && npm run build
-git add -A && git commit -m "Base" && git push origin main
+git add -A && git commit -m "Fase 1 - la base" && git push origin main
 ```
 
+Cuando eso esté arriba, los tres siguientes arrancan al mismo tiempo.
+
 ```bash
-# Mateo · Johan · Tomás — los tres a la vez, cada uno con SU fase
+# ── MATEO ── las pantallas
 git pull origin main
-
-git checkout -b 001-frontend  && /speckit-implement fase 2   # Mateo
-git checkout -b 001-backend   && /speckit-implement fase 3   # Johan
-git checkout -b 001-dashboard && /speckit-implement fase 4   # Tomás
-
-git add -A && git commit -m "Mi fase" && git push -u origin <tu-rama>
+git checkout -b 001-frontend
+/speckit-implement fase 2
+git add -A && git commit -m "Fase 2 - pantallas" && git push -u origin 001-frontend
 ```
 
 ```bash
-# Sergio, para cerrar
+# ── JOHAN ── el backend
+git pull origin main
+git checkout -b 001-backend
+/speckit-implement fase 3
+git add -A && git commit -m "Fase 3 - backend" && git push -u origin 001-backend
+```
+
+```bash
+# ── TOMÁS ── el dashboard
+git pull origin main
+git checkout -b 001-dashboard
+/speckit-implement fase 4
+git add -A && git commit -m "Fase 4 - dashboard" && git push -u origin 001-dashboard
+```
+
+```bash
+# ── SERGIO ── para cerrar, cuando los tres hayan subido
 git checkout main
 git merge 001-frontend 001-backend 001-dashboard
 /speckit-implement fase 5
