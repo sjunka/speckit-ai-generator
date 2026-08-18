@@ -3,7 +3,52 @@
 App donde tomas una foto, la IA la convierte en imagen, y esa imagen se vuelve
 un video corto.
 
-El código no existe todavía. Está descrito en `specs/` y el agente lo construye.
+**El código no existe todavía.** Está descrito en `specs/`, y el agente lo
+escribe a partir de esa descripción. Eso es Spec-Driven Development: la
+especificación es la fuente de verdad, el código es la salida.
+
+En este repo ya están escritas las cuatro piezas que Spec Kit necesita — las
+reglas del proyecto, qué hace la app, cómo se construye, y los 39 tickets.
+Falta correrlos.
+
+## Pruébalo en local antes de la presentación
+
+Toma diez minutos y sirve para llegar sabiendo cómo se siente. **Hazlo en una
+carpeta aparte y bórrala al terminar; no subas nada.**
+
+```bash
+# 1. Clona en una carpeta de práctica
+git clone https://github.com/sjunka/speckit-ai-generator.git practica-speckit
+cd practica-speckit
+
+# 2. Comprueba que el agente encuentra sus archivos
+bash .specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks
+```
+
+Si imprime una línea con `FEATURE_DIR`, estás listo. Abre Claude Code en esa
+carpeta y prueba dos comandos:
+
+```
+/speckit-analyze
+```
+
+No cambia nada. Revisa que el spec, el plan y los tickets no se contradigan, y
+te muestra cómo Spec Kit lee los tres archivos juntos.
+
+```
+/speckit-implement T001
+```
+
+Este sí construye: crea el proyecto de Next.js desde cero. Míralo trabajar, y
+fíjate al final en cómo marca el ticket como hecho en `tasks.md`. Ese es el
+ciclo completo.
+
+```bash
+# 3. Borra la práctica
+cd .. && rm -rf practica-speckit
+```
+
+Necesitas Claude Code con API key, Node 20 y git. Nada más.
 
 ## Tu comando
 
@@ -70,26 +115,6 @@ git merge 001-frontend 001-backend 001-dashboard
 /speckit-implement fase 5
 npm run dev
 ```
-
-## Antes de empezar
-
-```bash
-git clone https://github.com/sjunka/speckit-ai-generator.git
-cd speckit-ai-generator
-bash .specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks
-```
-
-Si imprime una línea con `FEATURE_DIR`, estás listo.
-
-Necesitas Claude Code con API key, Node 20 y git. Nada más.
-
----
-
-📖 **[Guía completa paso a paso](docs/GUIA-SPEC-KIT.md)** · también en
-[PDF](docs/GUIA-SPEC-KIT.pdf)
-
-Ahí está qué hace cada ticket, los seis momentos de la presentación, y qué
-hacer si algo falla.
 
 ---
 
