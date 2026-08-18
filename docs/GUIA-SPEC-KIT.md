@@ -91,11 +91,12 @@ cuando dudas de algo.
 - El ticket es `T001`, **no** "ticket 1". Con la T y con tres dígitos, igual que
   está escrito en `tasks.md`.
 - Escribir un solo ticket corre **solo ese ticket**. Para hacer un bloque
-  entero, se le dice la fase: `/speckit-implement Phase 3 only (T010 to T017)`.
+  entero, se le dice la fase: `/speckit-implement solo la Fase 3 (T010 a T017)`.
 - **Nunca lo corras sin argumento.** `/speckit-implement` a secas construye los
   39 tickets de golpe, incluidos los de tus compañeros.
 
-Esto crea el proyecto de Next.js desde cero. Espera a que termine.
+Esto crea el proyecto de Next.js desde cero: carpetas, `package.json`, y las
+librerías. Es la Fase 1 completa, un solo ticket. Espera a que termine.
 
 **Cómo saber que salió bien:** deben existir `package.json`, `app/layout.jsx` y
 `app/page.jsx`. Dentro de `package.json` debe decir `next: 16.3.x` y
@@ -106,17 +107,32 @@ Tailwind 4, que es justo lo que pide el plan.
 
 ## 5. La base (T002 a T009)
 
-Ocho tickets más. En vez de escribirlos uno por uno, se le pide la fase
-completa:
-
 ```
-/speckit-implement Phase 2 only (T002 to T009)
+/speckit-implement solo la Fase 2 (T002 a T009)
 ```
 
-Aquí se construyen los colores, la tipografía, los botones, y la configuración
-de las pruebas.
+### Qué se construye aquí, en cristiano
 
-Si se atora en alguno, córrelo suelto para aislar el problema:
+Sergio **no construye ninguna pantalla ni ninguna funcionalidad**. Construye las
+piezas que los otros tres van a usar. Por eso bloquea: Mateo necesita los
+botones, Johan necesita la base de datos falsa, y Tomás necesita las dos cosas.
+
+| Ticket | Qué hace | Para qué sirve |
+|---|---|---|
+| T002 | Configura las pruebas y copia los archivos de configuración | Que los otros puedan correr `npm test` desde el primer minuto |
+| T003 | Define los colores del proyecto | Un solo archivo con toda la paleta, nadie más escribe colores |
+| T004 | Carga las tipografías y los tamaños de letra | Que todos los textos se vean igual |
+| T005 | Arma el esqueleto de la página | El marco donde después encajan todas las pantallas |
+| T006 | Construye los botones, las tarjetas, los íconos | Mateo y Tomás los usan en vez de inventar los suyos |
+| T007 | El ícono y el archivo para instalar la app en el celular | Que se pueda instalar como si fuera una app nativa |
+| T008 | **Los dobles falsos: un backend y una base de datos de mentira** | Que Mateo pueda probar sus pantallas sin que exista el backend de Johan |
+| T009 | La revisión automática en GitHub | Que cada vez que alguien suba código se revise solo |
+
+**El T008 es el que hace posible todo lo demás.** Sin él, Mateo tendría que
+esperar a que Johan termine el backend para poder probar sus pantallas, y
+adiós al trabajo en paralelo.
+
+Si algún ticket se atora, córrelo suelto para aislar el problema:
 `/speckit-implement T005`.
 
 **Cómo saber que salió bien:**
@@ -144,11 +160,11 @@ Cada uno, en su propio computador:
 ```bash
 git pull origin main
 git checkout -b 001-frontend
-/speckit-implement Phase 3 only (T010 to T017)
+/speckit-implement solo la Fase 3 (T010 a T017)
 ```
 
-Johan usa `001-backend` y `Phase 4 only (T018 to T025)`. Tomás usa
-`001-dashboard` y `Phase 5 only (T026 to T030)`.
+Johan usa `001-backend` y `solo la Fase 4 (T018 a T025)`. Tomás usa
+`001-dashboard` y `solo la Fase 5 (T026 a T030)`.
 
 **¿Por qué no chocan?** Porque cada grupo toca archivos completamente distintos.
 En `tasks.md` está escrito qué archivos son de cada quien y cuáles no puede
@@ -167,7 +183,7 @@ Los comandos exactos de cada persona, momento a momento, están más abajo en
 ## 7. Juntar todo (T031 a T039)
 
 ```
-/speckit-implement Phase 6 only (T031 to T039)
+/speckit-implement solo la Fase 6 (T031 a T039)
 ```
 
 Aquí se juntan las tres ramas y se arregla lo que se rompió.
@@ -209,7 +225,7 @@ mirando media hora.
 git clone https://github.com/sjunka/speckit-ai-generator.git
 cd speckit-ai-generator
 
-/speckit-implement Phase 1 and Phase 2 only (T001 to T009)
+/speckit-implement solo la Fase 1 y la Fase 2 (T001 a T009)
 ```
 
 Son nueve tickets. El agente los hace seguidos y marca cada uno cuando termina.
@@ -250,21 +266,21 @@ Cada uno en su computador, al mismo tiempo:
 # Mateo
 git pull origin main
 git checkout -b 001-frontend
-/speckit-implement Phase 3 only (T010 to T017)
+/speckit-implement solo la Fase 3 (T010 a T017)
 ```
 
 ```bash
 # Johan
 git pull origin main
 git checkout -b 001-backend
-/speckit-implement Phase 4 only (T018 to T025)
+/speckit-implement solo la Fase 4 (T018 a T025)
 ```
 
 ```bash
 # Tomás
 git pull origin main
 git checkout -b 001-dashboard
-/speckit-implement Phase 5 only (T026 to T030)
+/speckit-implement solo la Fase 5 (T026 a T030)
 ```
 
 Esta es la parte que vale la pena mostrar: tres agentes escribiendo código a la

@@ -36,25 +36,30 @@ Eso es todo. No hay que instalar ni configurar nada más.
 
 39 tickets, del **T001** al **T039**, repartidos así:
 
-1. **T001** — crear el proyecto
-2. **T002 a T009** — la base: colores, botones, configuración de pruebas
-3. **T010 a T030** — el grueso. Aquí pueden trabajar tres personas a la vez
-4. **T031 a T039** — juntar todo y desplegar
+| Fase | Tickets | Qué es |
+|---|---|---|
+| **Fase 1** | T001 | Crear el proyecto |
+| **Fase 2** | T002 a T009 | La base compartida: colores, botones, pruebas |
+| **Fase 3** | T010 a T017 | Las pantallas |
+| **Fase 4** | T018 a T025 | El backend |
+| **Fase 5** | T026 a T030 | El dashboard |
+| **Fase 6** | T031 a T039 | Juntar todo y desplegar |
 
-Los pasos 1 y 2 bloquean al resto. El paso 3 se reparte. Los detalles están en
-la guía.
+Las fases 1 y 2 bloquean al resto. Las fases 3, 4 y 5 corren **al mismo tiempo**,
+una persona cada una. La fase 6 las junta.
 
 ## Cómo lo hacemos entre todos
 
 Somos cuatro. Cada uno tiene su bloque de tickets y su propia rama, así nadie
 pisa el trabajo de otro.
 
-| Quién | Rama | Tickets | Qué construye |
+| Quién | Fase | Tickets | Rama |
 |---|---|---|---|
-| **Sergio** | `main` | T001 a T009, y luego T031 a T039 | La base del proyecto, y al final junta todo |
-| **Mateo** | `001-frontend` | T010 a T017 | Las pantallas que ve el usuario |
-| **Johan** | `001-backend` | T018 a T025 | El backend y la conexión con la IA |
-| **Tomás** | `001-dashboard` | T026 a T030 | El panel del dueño y las cuentas reales |
+| **Sergio** | Fase 1 y 2 — crear el proyecto y la base | T001 a T009 | `main` |
+| **Mateo** | Fase 3 — las pantallas | T010 a T017 | `001-frontend` |
+| **Johan** | Fase 4 — el backend | T018 a T025 | `001-backend` |
+| **Tomás** | Fase 5 — el dashboard | T026 a T030 | `001-dashboard` |
+| **Sergio** | Fase 6 — juntar todo | T031 a T039 | `main` |
 
 **Los tickets T001 a T009 bloquean a todos los demás.** Sergio los corre primero
 y los sube a `main`. Hasta que eso no esté, los otros tres no pueden empezar.
@@ -71,7 +76,7 @@ varios, hay dos formas de usarlo.
 **Forma A — todo tu bloque de una (la que usamos):**
 
 ```
-/speckit-implement Phase 3 only (T010 to T017)
+/speckit-implement solo la Fase 3 (T010 a T017)
 ```
 
 El agente trabaja los ocho tickets seguidos, marcando cada uno como hecho.
@@ -103,13 +108,32 @@ dile qué fase o qué ticket te toca.
 - El ticket es **`T001`**, no "ticket 1". Con la T y tres dígitos, tal como está
   escrito en `tasks.md`.
 
-### Qué corre cada uno
+### Qué hace Sergio en sus dos primeras fases
 
-Las fases de `tasks.md` coinciden exacto con el reparto:
+No construye pantallas ni funcionalidad. Construye **las piezas compartidas que
+los otros tres necesitan**. Por eso bloquea a todo el mundo.
+
+| Ticket | Qué hace |
+|---|---|
+| T001 | Crea el proyecto de Next.js desde cero |
+| T002 | Deja las pruebas configuradas y listas para correr |
+| T003 | Define los colores del proyecto, todos en un solo archivo |
+| T004 | Carga las tipografías y los tamaños de letra |
+| T005 | Arma el esqueleto de la página |
+| T006 | Construye los botones, tarjetas e íconos que usarán los demás |
+| T007 | El ícono para instalar la app en el celular |
+| T008 | **Un backend y una base de datos falsos, para probar sin internet** |
+| T009 | La revisión automática en GitHub |
+
+**El T008 es el que hace posible el trabajo en paralelo.** Gracias a ese backend
+falso, Mateo puede construir y probar sus pantallas sin esperar a que Johan
+termine el backend de verdad.
+
+### Qué corre cada uno
 
 ```bash
 # Sergio — antes de la presentación
-/speckit-implement Phase 1 and Phase 2 only (T001 to T009)
+/speckit-implement solo la Fase 1 y la Fase 2 (T001 a T009)
 
 npm run lint && npm test && npm run build
 git add -A && git commit -m "Base del proyecto" && git push origin main
@@ -119,7 +143,7 @@ git add -A && git commit -m "Base del proyecto" && git push origin main
 # Mateo — las pantallas
 git pull origin main
 git checkout -b 001-frontend
-/speckit-implement Phase 3 only (T010 to T017)
+/speckit-implement solo la Fase 3 (T010 a T017)
 git add -A && git commit -m "Frontend" && git push -u origin 001-frontend
 ```
 
@@ -127,7 +151,7 @@ git add -A && git commit -m "Frontend" && git push -u origin 001-frontend
 # Johan — el backend
 git pull origin main
 git checkout -b 001-backend
-/speckit-implement Phase 4 only (T018 to T025)
+/speckit-implement solo la Fase 4 (T018 a T025)
 git add -A && git commit -m "Backend" && git push -u origin 001-backend
 ```
 
@@ -135,7 +159,7 @@ git add -A && git commit -m "Backend" && git push -u origin 001-backend
 # Tomás — el dashboard y las cuentas
 git pull origin main
 git checkout -b 001-dashboard
-/speckit-implement Phase 5 only (T026 to T030)
+/speckit-implement solo la Fase 5 (T026 a T030)
 git add -A && git commit -m "Dashboard" && git push -u origin 001-dashboard
 ```
 
@@ -143,7 +167,7 @@ git add -A && git commit -m "Dashboard" && git push -u origin 001-dashboard
 # Sergio otra vez — juntar todo
 git checkout main
 git merge 001-frontend 001-backend 001-dashboard
-/speckit-implement Phase 6 only (T031 to T039)
+/speckit-implement solo la Fase 6 (T031 a T039)
 npm test
 npm run dev
 ```
