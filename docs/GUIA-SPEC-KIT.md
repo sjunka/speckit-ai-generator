@@ -24,16 +24,19 @@ Nada más. No hace falta instalar Spec Kit, ya viene en el repo.
 
 ## Lista de tareas
 
-- [ ] 1. Clonar el repo
-- [ ] 2. Verificar que funciona
-- [ ] 3. Leer tres documentos
-- [ ] 4. Ticket T001 — crear el proyecto
-- [ ] 5. Tickets T002 a T009 — la base
-- [ ] 6. Repartir el trabajo entre el equipo
-- [ ] 7. Tickets T031 a T039 — juntar todo
-- [ ] 8. Desplegar
+- [ ] 1. Clonar el repo — todos
+- [ ] 2. Verificar que funciona — todos
+- [ ] 3. Leer tres documentos — todos
+- [ ] 4. Ticket T001, crear el proyecto — Sergio
+- [ ] 5. Tickets T002 a T009, la base — Sergio
+- [ ] 6. Repartir: T010 Mateo, T018 Johan, T026 Tomás
+- [ ] 7. Tickets T031 a T039, juntar todo — Sergio
+- [ ] 8. Desplegar — Sergio
 
 Son 39 tickets en total. Van del T001 al T039, en orden.
+
+Los pasos 4 y 5 hay que hacerlos **antes** de la presentación: bloquean a todos
+los demás y tardan más de una hora.
 
 ---
 
@@ -84,7 +87,11 @@ cuando dudas de algo.
 Esto crea el proyecto de Next.js desde cero. Espera a que termine.
 
 **Cómo saber que salió bien:** deben existir `package.json`, `app/layout.jsx` y
-`app/page.jsx`.
+`app/page.jsx`. Dentro de `package.json` debe decir `next: 16.3.x` y
+`react: 19.2.x`.
+
+Este ticket ya se probó y funciona: crea Next.js 16.3.1 con React 19.2.8 y
+Tailwind 4, que es justo lo que pide el plan.
 
 ## 5. La base (T002 a T009)
 
@@ -110,35 +117,35 @@ Los tres tienen que pasar. Cuando pasen, sube esto a `main`.
 
 ## 6. Repartir el trabajo
 
-Aquí es donde tres personas pueden trabajar al mismo tiempo sin estorbarse.
+Aquí es donde tres personas trabajan al mismo tiempo sin estorbarse.
 
-| Persona | Tickets | Qué construye |
-|---|---|---|
-| A | T010 a T017 | Las pantallas que ve el usuario |
-| B | T018 a T025 | El backend y la conexión con la IA |
-| C | T026 a T030 | El dashboard del dueño y las cuentas |
+| Persona | Rama | Tickets | Qué construye |
+|---|---|---|---|
+| Mateo | `001-frontend` | T010 a T017 | Las pantallas que ve el usuario |
+| Johan | `001-backend` | T018 a T025 | El backend y la conexión con la IA |
+| Tomás | `001-dashboard` | T026 a T030 | El dashboard del dueño y las cuentas |
 
-Cada quien crea su propia carpeta de trabajo:
+Cada uno, en su propio computador:
 
 ```bash
-git worktree add ../frontend  -b 001-frontend
-git worktree add ../backend   -b 001-backend
-git worktree add ../dashboard -b 001-dashboard
+git pull origin main
+git checkout -b 001-frontend     # o 001-backend, o 001-dashboard
+/speckit-implement T010          # o T018, o T026
 ```
-
-Y desde su carpeta arranca con su primer ticket: `/speckit-implement T010`,
-`/speckit-implement T018` o `/speckit-implement T026`.
 
 **¿Por qué no chocan?** Porque cada grupo toca archivos completamente distintos.
 En `tasks.md` está escrito qué archivos son de cada quien y cuáles no puede
 tocar. Ningún archivo aparece en dos listas.
 
-**Un aviso sobre los tickets de C:** el T030 es el único que necesita crear
-cuentas reales (Clerk, MongoDB, Vercel, Higgsfield). Quien lo tome va a tardar
-más. Los otros dos siguen sin necesitar contraseñas de nada.
+**Un aviso sobre los tickets de Tomás:** el T030 es el único que necesita
+cuentas reales (Clerk, MongoDB, Vercel, Higgsfield) y el archivo `.env.local`.
+Sergio se lo tiene que pasar aparte, nunca por el repo.
 
-**Si trabajas solo:** olvídate de las carpetas separadas. Haz los tickets en
-orden, del T010 al T030. Funciona igual, solo que más lento.
+**Si trabajas solo:** haz los tickets en orden, del T010 al T030, sin ramas.
+Funciona igual, solo que más lento.
+
+Los comandos exactos de cada persona, momento a momento, están más abajo en
+**Cómo lo hacemos entre todos**.
 
 ## 7. Juntar todo (T031 a T039)
 
@@ -159,6 +166,152 @@ El T039 lo explica. Vercel se conecta al repo y despliega solo. Solo hay que
 poner las 8 variables de entorno en la configuración del proyecto.
 
 ---
+
+---
+
+## Cómo lo hacemos entre todos (4 personas)
+
+Somos cuatro y cada uno tiene su bloque. Esta es la parte que hay que ensayar.
+
+| Quién | Rama | Tickets |
+|---|---|---|
+| **Sergio** | `main` | T001 a T009, después T031 a T039 |
+| **Mateo** | `001-frontend` | T010 a T017 |
+| **Johan** | `001-backend` | T018 a T025 |
+| **Tomás** | `001-dashboard` | T026 a T030 |
+
+### Antes de la presentación
+
+**Esto NO se hace en vivo.** Los tickets T001 a T009 bloquean a todos y tardan
+un rato largo. Si los corres en la presentación, los otros tres se quedan
+mirando media hora.
+
+**Sergio, el día anterior:**
+
+```bash
+git clone https://github.com/sjunka/speckit-ai-generator.git
+cd speckit-ai-generator
+
+/speckit-implement T001
+/speckit-implement T002
+/speckit-implement T003
+/speckit-implement T004
+/speckit-implement T005
+/speckit-implement T006
+/speckit-implement T007
+/speckit-implement T008
+/speckit-implement T009
+```
+
+Uno por uno, esperando a que cada uno termine. Cuando acaben los nueve:
+
+```bash
+npm run lint && npm test && npm run build
+git add -A
+git commit -m "Base del proyecto (T001 a T009)"
+git push origin main
+```
+
+Los tres comandos tienen que pasar antes de subir. Si alguno falla, arréglalo
+antes de seguir — todo lo demás se construye encima de esto.
+
+**Sergio también:** pásale el archivo `.env.local` a Tomás por WhatsApp o
+correo. **No lo subas al repo.** Tomás lo necesita para el T030, que es el único
+ticket que habla con las cuentas de verdad.
+
+**Los cuatro, la noche antes:** clonar el repo y comprobar que al escribir
+`/speckit-` en Claude Code aparecen los comandos. Si no aparecen, estás fuera de
+la carpeta del repo.
+
+### Durante la presentación
+
+**Momento 1 — Sergio abre (2 minutos)**
+
+Enseña el repo. Explica la idea: nadie escribió el código, está descrito en
+`specs/` y el agente lo construye. Muestra `tasks.md` y los 39 tickets.
+
+**Momento 2 — los tres arrancan a la vez**
+
+Cada uno en su computador, al mismo tiempo:
+
+```bash
+# Mateo
+git pull origin main
+git checkout -b 001-frontend
+/speckit-implement T010
+```
+
+```bash
+# Johan
+git pull origin main
+git checkout -b 001-backend
+/speckit-implement T018
+```
+
+```bash
+# Tomás
+git pull origin main
+git checkout -b 001-dashboard
+/speckit-implement T026
+```
+
+Esta es la parte que vale la pena mostrar: tres agentes escribiendo código a la
+vez, en el mismo proyecto, sin chocar.
+
+**Momento 3 — Sergio explica mientras los agentes trabajan**
+
+Abre `tasks.md` y muestra los bloques que dicen *Owns* y *Never touches*. Ahí
+está la razón de que no choquen: ningún archivo aparece en dos listas.
+
+**Momento 4 — cada uno sube su rama**
+
+```bash
+git add -A
+git commit -m "Mi bloque de tickets"
+git push -u origin 001-frontend      # o 001-backend, o 001-dashboard
+```
+
+**Momento 5 — Sergio junta todo**
+
+```bash
+git checkout main
+git pull origin main
+git merge 001-frontend 001-backend 001-dashboard
+```
+
+Si hay conflictos, van a ser en `package.json` y se arreglan quedándose con
+las dos listas de dependencias. Después:
+
+```bash
+/speckit-implement T032
+npm test
+```
+
+**El T032 es el ticket que salva la demo.** Mateo probó su pantalla contra un
+backend falso, no contra el de Johan. El T032 comprueba que los dos coinciden.
+Si te lo saltas, las pruebas pasan y la app no funciona.
+
+**Momento 6 — la app corriendo de verdad**
+
+```bash
+npm run dev
+```
+
+Con el `.env.local` puesto. Abre el navegador y haz el recorrido completo:
+entrar, foto, imagen generada, video, descargar. Ese es el cierre.
+
+### Cuántos tickets correr en vivo
+
+Cada ticket tarda entre 5 y 15 minutos. Ocho tickets seguidos son más de una
+hora, y eso no cabe en una presentación.
+
+**Lo recomendable:** construyan todo el día anterior, hasta tener la app
+funcionando. En la presentación, cada uno corre **solo su primer ticket** en
+vivo para enseñar cómo funciona, y el resto de su rama ya está hecho. Terminan
+con el merge y la app corriendo.
+
+Así saben cuánto tarda cada cosa, y si algo falla lo descubren en su casa y no
+frente al profesor.
 
 ## Si algo falla
 
@@ -192,15 +345,20 @@ Están completas en `.specify/memory/constitution.md`.
 
 ---
 
-## Antes de la presentación
+## Lista final antes de presentar
 
 - [ ] Todos pueden clonar el repo
 - [ ] El comando del paso 2 funciona en la máquina de cada uno
-- [ ] **Alguien ya corrió el T001 completo y funcionó**
-- [ ] Todos tienen Claude Code y una API key
+- [ ] Todos tienen Claude Code y una API key que funciona
 - [ ] Todos leyeron la sección §10
+- [ ] **Sergio ya corrió T001 a T009 y están en `main`**
+- [ ] **Tomás ya tiene el `.env.local`**
+- [ ] **Ya construyeron la app completa una vez y arrancó con `npm run dev`**
+- [ ] Cada uno sabe de memoria el comando que le toca correr en vivo
 
-El tercer punto es el único que no se puede improvisar en vivo. Háganlo antes.
+Los tres puntos en negrita son los que no se pueden improvisar. Si llegan a la
+presentación sin haber construido la app al menos una vez, van a descubrir los
+problemas en vivo.
 
 ---
 

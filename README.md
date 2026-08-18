@@ -44,6 +44,24 @@ Eso es todo. No hay que instalar ni configurar nada más.
 Los pasos 1 y 2 bloquean al resto. El paso 3 se reparte. Los detalles están en
 la guía.
 
+## Cómo lo hacemos entre todos
+
+Somos cuatro. Cada uno tiene su bloque de tickets y su propia rama, así nadie
+pisa el trabajo de otro.
+
+| Quién | Rama | Tickets | Qué construye |
+|---|---|---|---|
+| **Sergio** | `main` | T001 a T009, y luego T031 a T039 | La base del proyecto, y al final junta todo |
+| **Mateo** | `001-frontend` | T010 a T017 | Las pantallas que ve el usuario |
+| **Johan** | `001-backend` | T018 a T025 | El backend y la conexión con la IA |
+| **Tomás** | `001-dashboard` | T026 a T030 | El panel del dueño y las cuentas reales |
+
+**Los tickets T001 a T009 bloquean a todos los demás.** Sergio los corre primero
+y los sube a `main`. Hasta que eso no esté, los otros tres no pueden empezar.
+
+Los comandos exactos de cada persona, en orden, están en la
+[guía](docs/GUIA-SPEC-KIT.md#cómo-lo-hacemos-entre-todos-4-personas).
+
 ## Un aviso importante
 
 `specs/001-ai-media-generator/tasks.md` **no se regenera nunca**. Ese archivo
