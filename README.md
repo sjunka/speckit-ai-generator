@@ -59,8 +59,71 @@ pisa el trabajo de otro.
 **Los tickets T001 a T009 bloquean a todos los demás.** Sergio los corre primero
 y los sube a `main`. Hasta que eso no esté, los otros tres no pueden empezar.
 
-Los comandos exactos de cada persona, en orden, están en la
-[guía](docs/GUIA-SPEC-KIT.md#cómo-lo-hacemos-entre-todos-4-personas).
+### El comando
+
+Uno solo, y siempre igual:
+
+```
+/speckit-implement T001
+```
+
+Se cambia el número por el ticket que toque. Tres cosas que se confunden:
+
+- El comando es **`/speckit-implement`**, no `/implement`. Spec Kit le pone el
+  prefijo `speckit-` a todos sus comandos.
+- El ticket es **`T001`**, no "ticket 1". Con la T y con tres dígitos, tal como
+  está escrito en `tasks.md`.
+- Se corre **un ticket a la vez**, esperando a que termine antes del siguiente.
+
+### Qué corre cada uno
+
+```bash
+# Sergio — antes de la presentación, uno por uno
+/speckit-implement T001
+/speckit-implement T002
+/speckit-implement T003
+/speckit-implement T004
+/speckit-implement T005
+/speckit-implement T006
+/speckit-implement T007
+/speckit-implement T008
+/speckit-implement T009
+npm run lint && npm test && npm run build
+git add -A && git commit -m "Base del proyecto" && git push origin main
+```
+
+```bash
+# Mateo — T010 a T017
+git pull origin main
+git checkout -b 001-frontend
+/speckit-implement T010
+```
+
+```bash
+# Johan — T018 a T025
+git pull origin main
+git checkout -b 001-backend
+/speckit-implement T018
+```
+
+```bash
+# Tomás — T026 a T030
+git pull origin main
+git checkout -b 001-dashboard
+/speckit-implement T026
+```
+
+```bash
+# Sergio otra vez — juntar todo, T031 a T039
+git checkout main
+git merge 001-frontend 001-backend 001-dashboard
+/speckit-implement T032
+npm test
+npm run dev
+```
+
+El paso a paso completo, con los seis momentos de la presentación, está en la
+[guía](docs/GUIA-SPEC-KIT.md).
 
 ## Un aviso importante
 

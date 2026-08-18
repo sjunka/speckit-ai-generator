@@ -84,6 +84,15 @@ cuando dudas de algo.
 /speckit-implement T001
 ```
 
+**Tres cosas que se confunden mucho:**
+
+- El comando es `/speckit-implement`, **no** `/implement`. Spec Kit le pone el
+  prefijo `speckit-` a todos sus comandos para no chocar con otras herramientas.
+- El ticket es `T001`, **no** "ticket 1". Con la T y con tres dígitos, igual que
+  está escrito en `tasks.md`.
+- Se corre **un ticket a la vez**. Espera a que termine antes de lanzar el
+  siguiente.
+
 Esto crea el proyecto de Next.js desde cero. Espera a que termine.
 
 **Cómo saber que salió bien:** deben existir `package.json`, `app/layout.jsx` y
