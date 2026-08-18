@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci
+      - run: npm run lint
+      - run: npx -y react-doctor@latest . --score > /tmp/score.txt
+      - name: Check react-doctor score
+        run: |
+          BASELINE=$(cat .react-doctor-baseline 2>/dev/null || echo "0")
+          CURRENT=$(cat /tmp/score.txt)
+          if [ "$CURRENT" -lt "$BASELINE" ]; then
+            echo "react-doctor score regression: $CURRENT < $BASELINE"
+            exit 1
+          fi
+      - run: npm test

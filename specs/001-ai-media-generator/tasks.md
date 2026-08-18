@@ -50,7 +50,7 @@ Nothing outside this phase edits `package.json`, `vitest.config.mjs`,
 `eslint.config.mjs`. A later phase that needs a change there raises it instead
 of committing it.
 
-- [ ] T001 Scaffold into a subdirectory and move the files up — `create-next-app` refuses a directory holding `docs/`, and npm rejects a package name starting with a period (see trap 1):
+- [X] T001 Scaffold into a subdirectory and move the files up — `create-next-app` refuses a directory holding `docs/`, and npm rejects a package name starting with a period (see trap 1):
 
   ```bash
   npx create-next-app@latest scaffold --js --app --tailwind --eslint \
@@ -62,6 +62,9 @@ of committing it.
   rm -rf scaffold
   mv app/layout.js app/layout.jsx && mv app/page.js app/page.jsx
 
+  # create-next-app deja "name": "scaffold" en package.json — corrígelo
+  npm pkg set name=ia-generator
+
   npm i @clerk/nextjs mongodb @vercel/blob
   npm i -D vitest @testing-library/react @testing-library/user-event \
            @testing-library/jest-dom jsdom msw @playwright/test
@@ -69,14 +72,14 @@ of committing it.
 
   Renaming the two scaffold pages to `.jsx` matters: it means Fase 2 and Fase 4 edit files that already exist instead of racing to create them.
 
-- [ ] T002 Add `dev`, `build`, `start`, `lint`, `test` (`vitest run`), `test:watch`, `test:e2e` and `docs:appendix` scripts to `package.json`. Write `vitest.config.mjs` and `vitest.setup.js` per the plan **now, not later** — Fases 2–5 must be able to run a test from their first minute. Take `next.config.mjs`, `jsconfig.json`, `postcss.config.mjs`, `eslint.config.mjs`, `playwright.config.js`, `doctor.config.json` and `.gitignore` from `docs/REPLICATION-APPENDIX.md` verbatim; `next.config.mjs` carries the `images.remotePatterns` entry without which no generated image renders (trap 13). The `.mjs` extension on the Vitest config matters, and the `@` alias must be set there because Vitest ignores `jsconfig.json` (trap 8). → verify: `npm test` runs and reports no tests; `npm run build` passes
-- [ ] T003 Strip the scaffold's placeholder styles and markup from `app/globals.css` and `app/page.jsx`. Write the token tests **first** — canvas is `#010102`, the surface ladder resolves, no raw lavender hex outside `globals.css` — then land the `@theme` block from REPLICATION-PROMPT.md §6 in `app/globals.css`. → verify: token tests green
-- [ ] T004 Load Inter and JetBrains Mono through `next/font/google` and implement the eleven type-scale classes from §6 as component classes in `app/globals.css`. Test the tracking values and that no display weight exceeds 600
-- [ ] T005 Write `app/layout.jsx`: `ClerkProvider`, `<html className="dark …">`, viewport metadata, manifest link, `bg-canvas text-ink` on the body. Test that a light `prefers-color-scheme` changes nothing
-- [ ] T006 Build `components/ui/*` per §6 — `Button` (primary/secondary/tertiary), `TextInput`, `StatusBadge`, `Card`, `Spinner`, and the six inline 20×20 stroke icons — re-exported from `components/ui/index.js`, plus `components/Nav.jsx`. Each variant, the focus ring and the 44px height under test. Copy the icon path data from the appendix; hand-drawn replacements will not match. Destructure `className` and append it — never spread `{...props}` after it (trap 16)
-- [ ] T007 [P] Write `public/manifest.json` and the two icons (`public/icon-192.png`, `public/icon-512.png`, `app/favicon.ico` — a lavender `#5e6ad2` mark on the `#010102` canvas). Test its shape and that `app/layout.jsx` links it
-- [ ] T008 [P] Write the shared doubles the later phases consume: `test/msw/handlers.js` and `test/msw/server.js` against the plan's HTTP table, `test/mongo-fake.js` (`findOne`, `insertOne`, `updateOne`, `countDocuments`, under 40 lines — not `mongodb-memory-server`), `test/fixtures.js`, a 360px viewport render helper, and a contrast check asserting body text clears 4.5:1 on the canvas and every surface step
-- [ ] T009 Write `.github/workflows/ci.yml` on push and pull request: `npm ci` → `npm run lint` → `npx -y react-doctor@latest . --score` compared against a committed `.react-doctor-baseline` → `npm test`. Establish the baseline **after** the shell exists, not on the bare scaffold (trap 12). Committed values are `.react-doctor-baseline` = `55` and `doctor.config.json` turning off `react-doctor/effect-needs-cleanup`. → verify: the workflow passes with no environment variables set, and fails both when a test fails and when the score drops
+- [X] T002 Add `dev`, `build`, `start`, `lint`, `test` (`vitest run`), `test:watch`, `test:e2e` and `docs:appendix` scripts to `package.json`. Write `vitest.config.mjs` and `vitest.setup.js` per the plan **now, not later** — Fases 2–5 must be able to run a test from their first minute. Take `next.config.mjs`, `jsconfig.json`, `postcss.config.mjs`, `eslint.config.mjs`, `playwright.config.js`, `doctor.config.json` and `.gitignore` from `docs/REPLICATION-APPENDIX.md` verbatim; `next.config.mjs` carries the `images.remotePatterns` entry without which no generated image renders (trap 13). The `.mjs` extension on the Vitest config matters, and the `@` alias must be set there because Vitest ignores `jsconfig.json` (trap 8). → verify: `npm test` runs and reports no tests; `npm run build` passes
+- [X] T003 Strip the scaffold's placeholder styles and markup from `app/globals.css` and `app/page.jsx`. Write the token tests **first** — canvas is `#010102`, the surface ladder resolves, no raw lavender hex outside `globals.css` — then land the `@theme` block from REPLICATION-PROMPT.md §6 in `app/globals.css`. → verify: token tests green
+- [X] T004 Load Inter and JetBrains Mono through `next/font/google` and implement the eleven type-scale classes from §6 as component classes in `app/globals.css`. Test the tracking values and that no display weight exceeds 600
+- [X] T005 Write `app/layout.jsx`: `ClerkProvider`, `<html className="dark …">`, viewport metadata, manifest link, `bg-canvas text-ink` on the body. Test that a light `prefers-color-scheme` changes nothing
+- [X] T006 Build `components/ui/*` per §6 — `Button` (primary/secondary/tertiary), `TextInput`, `StatusBadge`, `Card`, `Spinner`, and the six inline 20×20 stroke icons — re-exported from `components/ui/index.js`, plus `components/Nav.jsx`. Each variant, the focus ring and the 44px height under test. Copy the icon path data from the appendix; hand-drawn replacements will not match. Destructure `className` and append it — never spread `{...props}` after it (trap 16)
+- [X] T007 [P] Write `public/manifest.json`. The three icons are **binary and cannot come from the appendix** — copy them from `assets/` in this repo: `cp assets/icon-192.png assets/icon-512.png public/ && cp assets/favicon.ico app/`. Test the manifest shape and that `app/layout.jsx` links it
+- [X] T008 [P] Write the shared doubles the later phases consume: `test/msw/handlers.js` against the plan's HTTP table (there is **no** `test/msw/server.js` — each test that needs MSW builds its own server from `handlers`), `test/mongo-fake.js` (`findOne`, `insertOne`, `updateOne`, `countDocuments`, under 40 lines — not `mongodb-memory-server`), `test/fixtures.js`, a 360px viewport render helper, and a contrast check asserting body text clears 4.5:1 on the canvas and every surface step
+- [X] T009 Write `.github/workflows/ci.yml` on push and pull request: `npm ci` → `npm run lint` → `npx -y react-doctor@latest . --score` compared against a committed `.react-doctor-baseline` → `npm test`. Establish the baseline **after** the shell exists, not on the bare scaffold (trap 12). Committed values are `.react-doctor-baseline` = `55` and `doctor.config.json` turning off `react-doctor/effect-needs-cleanup`. → verify: the workflow passes with no environment variables set, and fails both when a test fails and when the score drops
 
 **Checkpoint**: `npm run lint && npm test && npm run build` green, CI green, and Fases 2, 4 and 5 can each `npm ci` and run a test. They may now start in parallel.
 
