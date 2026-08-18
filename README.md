@@ -143,3 +143,19 @@ posible el trabajo en paralelo, el **T030** trae las llaves de verdad, el
 
 La descripción larga de cada ticket, con las rutas de archivo exactas, está en
 [`specs/001-ai-media-generator/tasks.md`](specs/001-ai-media-generator/tasks.md).
+
+---
+
+## Guion de la presentación
+
+| # | Quién | Qué hace | Qué dice |
+|---|---|---|---|
+| 1 | Sergio | Abre `specs/` y `tasks.md` | Nadie escribió el código: está descrito aquí y el agente lo construye |
+| 2 | Los tres | Corren su fase al mismo tiempo | Tres personas, un proyecto, sin pisarse |
+| 3 | Sergio | Muestra los bloques *Owns / Never touches* | Cada fase declara qué archivos toca; ninguno se repite |
+| 4 | Los tres | Suben su rama | |
+| 5 | Sergio | Merge y `fase 5` | El T032 comprueba que las piezas encajan antes de creerle a las pruebas |
+| 6 | Todos | `npm run dev` y el recorrido en el celular | Foto, imagen, video, descarga |
+
+Cierre: de una especificación escrita a una app funcionando, con el trabajo
+repartido entre cuatro personas.
