@@ -166,6 +166,109 @@ no agregan nada que el agente no haya hecho ya.
 
 ---
 
+## Si no tienes Claude Code
+
+No hace falta que los cinco usemos el mismo agente. `/speckit-implement` no vive
+dentro de Claude Code: vive en este repo, como texto plano. Es
+[`.claude/skills/speckit-implement/SKILL.md`](.claude/skills/speckit-implement/SKILL.md),
+está commiteado, y son instrucciones en markdown que cualquier agente puede
+seguir — Cursor, Copilot, Gemini CLI, Codex, el que tengas abierto. La carpeta se
+llama `.claude/` por cómo la generó Spec Kit, no porque el contenido sea de
+Claude.
+
+Lo mismo con el resto de la maquinaria: `.specify/scripts/bash/` son scripts de
+bash y `.specify/templates/` son plantillas de markdown. Nada de eso depende del
+agente. Por eso un `git clone` te deja listo para trabajar, tengas lo que tengas
+instalado.
+
+### Los cuatro pasos
+
+**1. Tu rama, igual que todos.** Copia el bloque de tu nombre de *Qué hace cada
+quien*, arriba, hasta la línea del `/speckit-implement`. Esa línea es la única
+que cambia.
+
+**2. Comprueba que el agente va a encontrar sus archivos.**
+
+```bash
+bash .specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks
+```
+
+Tiene que imprimir una línea con `FEATURE_DIR` apuntando a
+`specs/001-ai-media-generator`. Si imprime un error, no sigas: te falta el `git
+pull` o estás parado en la carpeta equivocada.
+
+**3. Pégale esto a tu agente.** Cambia el número de la fase por el tuyo y nada
+más:
+
+```text
+Lee .claude/skills/speckit-implement/SKILL.md y ejecuta sus instrucciones.
+Donde ese archivo dice $ARGUMENTS, el valor es: fase 2
+
+Antes de escribir una sola línea de código, lee completos:
+- .specify/memory/constitution.md
+- specs/001-ai-media-generator/plan.md, sobre todo la sección Contracts
+- specs/001-ai-media-generator/tasks.md, solo los tickets de mi fase
+- docs/REPLICATION-PROMPT.md secciones 6, 7 y 10
+
+Esas tres secciones del REPLICATION-PROMPT no están copiadas en el plan y son
+obligatorias: la 6 tiene los valores de los tokens y las clases de tipo, la 7
+tiene los strings de copy exactos que las pruebas afirman, y la 10 tiene 16
+trampas que cuestan una hora cada una.
+
+Reglas de esta sesión:
+- Construye SOLO los tickets de mi fase. Ninguno de otra fase, aunque veas que
+  falta algo.
+- No toques ningún archivo fuera del bloque Owns de mi fase. Si necesitas un
+  cambio en un archivo de otra fase, párate y dímelo en vez de commitearlo.
+- Test-first: la prueba que falla primero, después el código que la pasa.
+- No reescribas .gitignore. Ya está bien y tiene dos líneas que se necesitan
+  después.
+- Usa npm. No pnpm, no yarn, no bun.
+- Marca cada ticket como [X] en tasks.md al terminarlo.
+```
+
+**4. Sube tu rama.** El `git add`/`commit`/`push` de tu bloque, sin cambios.
+
+### Por qué el prompt insiste tanto
+
+Las tres primeras reglas no son adorno. Son exactamente las tres formas en que
+esto se rompe:
+
+| Si el agente… | Lo que pasa |
+|---|---|
+| No lee `REPLICATION-PROMPT.md` §6, §7 y §10 | La app se construye y no funciona: colores inventados, strings que las pruebas no reconocen, y las trampas 21 y 22 pegando contra la API real. El `SKILL.md` **no** carga ese archivo — solo carga el plan, el spec y los tickets |
+| Ignora el argumento de la fase | Construye las cinco fases. Cuando Santiago haga el merge, tu rama choca con las otras tres en todos los archivos |
+| Escribe fuera de su bloque `Owns` | Conflicto de merge en un archivo que no era tuyo, en vivo, el día de la presentación |
+
+Las otras dos reglas son más chicas y también reales: el `SKILL.md` trae un paso
+que le dice al agente que cree o verifique los archivos de ignore, y nuestro
+`.gitignore` tiene `!.env.local.example` y `!.env*.example`, que son las dos
+líneas sin las cuales el T030 no puede commitear el archivo de ejemplo. Y un
+gestor de paquetes distinto agrega un lockfile nuevo que nadie más tiene.
+
+### Lo que NO genera conflicto
+
+Para que nadie se frene por miedo:
+
+- **Que cada uno use un agente distinto.** Los agentes escriben código, y el
+  código va a archivos que ya están repartidos por los bloques `Owns`. Ninguna
+  fase toca los archivos de otra.
+- **Que tu agente escriba peor o mejor que el mío.** Las pruebas son las mismas
+  para todos y están descritas en los tickets.
+- **La carpeta `.claude/`.** Nadie la edita. Es de solo lectura para todos.
+
+### Lo que sí hay que evitar
+
+- **No corras `specify init` otra vez.** Reescribe `.specify/integration.json`
+  para agregar tu agente, y ese archivo sí conflictúa al merge. La maquinaria ya
+  está en el repo y sirve para cualquier agente.
+- **No commitees los archivos de configuración de tu agente** — `AGENTS.md`,
+  `GEMINI.md`, `.cursor/`, `.github/copilot-instructions.md`. No aportan nada al
+  resultado y si dos personas suben el suyo con el mismo nombre, conflictúan.
+  Déjalos sin trackear.
+
+---
+
 ## Los 39 tickets
 
 | Ticket | Qué hace | Fase | Quién |
