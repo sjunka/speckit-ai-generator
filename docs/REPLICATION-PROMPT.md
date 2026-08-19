@@ -752,6 +752,12 @@ Things that cost time the first time round. Read before starting.
     effect body**, including the natural way to reset a counter. Move the
     reset into that same effect's cleanup function (`return () => { ...;
     setSeconds(0); }`) — that pattern is accepted by the rule.
+19. **`userEvent.upload` doesn't wait for `FileReader.readAsDataURL`.** jsdom
+    resolves it asynchronously, so a synchronous assertion right after upload
+    is flaky. Wrap the assertion in `waitFor`.
+20. **Testing Library gives `<video>` no implicit ARIA role**, so
+    `getByRole("video")` never matches. Use `data-testid="video-player"` (or
+    similar) on the element instead.
 
 ## 11. Definition of done
 

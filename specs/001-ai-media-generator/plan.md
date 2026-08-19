@@ -93,6 +93,7 @@ one.
 // lib/db.js
 export const db = async () => Db                  // MongoClient cached on globalThis
 export const generations = async () => Collection // db("ia-generator").collection("generations")
+// lib/settings.js reaches its collection the same way: (await db()).collection("settings") — no separate export for it
 
 // lib/settings.js
 export const getSettings = async () => ({ enabled: boolean, videoQuality: string })
@@ -123,6 +124,13 @@ it is what the MSW handlers are written against.
 | `/api/video` | POST | `{ imageUrl }` | `200 { jobId }` · `401` · `502` · `503` |
 | `/api/video/[id]` | GET | — | `200 { status, videoUrl? }` · `404` |
 | `/api/video/[id]/file` | GET | — | the video bytes, same-origin · `404` |
+
+These two `[id]` reads are deliberately not session-gated — no `401` row, on
+purpose. FR-004 only requires the *generation* endpoints (`/api/image`,
+`/api/video`) to self-check the session; the job id is unguessable and reading
+it back discloses nothing enumerable (see spec.md's Edge Cases), so the read
+routes rely on that instead. Don't add auth here without changing the spec —
+and don't read its absence as an oversight either.
 | `/api/settings` | GET, PATCH | `{ enabled?, videoQuality? }` | `200 { enabled, videoQuality }` · `404` for non-owner and anonymous |
 
 ### Data
