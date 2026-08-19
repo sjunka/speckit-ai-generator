@@ -212,8 +212,10 @@ La descripción larga de cada ticket, con las rutas de archivo exactas, está en
 
 ## Guion de la presentación
 
-El guion largo, con los tiempos minuto a minuto y los 49 comandos en orden,
-está en `GUION-PRESENTACION.pdf`. Esto es el resumen.
+El guion largo, con los tiempos minuto a minuto y los 51 comandos en orden,
+está en [`docs/GUION-PRESENTACION.pdf`](docs/GUION-PRESENTACION.pdf). Esto es el
+resumen. Para regenerarlo después de editar el `.html` de al lado:
+`node scripts/build-guion-pdf.mjs`.
 
 ### Dos carpetas, no una
 
