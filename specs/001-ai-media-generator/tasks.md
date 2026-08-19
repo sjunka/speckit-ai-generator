@@ -152,6 +152,8 @@ of committing it.
 
 ## Fase 5 — Juntar todo
 
+**Santiago.** Junta las cuatro mitades en una sola aplicación.
+
 **Purpose**: Make the four halves one application. This is where a parallel build actually fails, so it is a real phase and not a formality.
 
 *Runs after Fases 2, 4 and 5. Owns nothing new.*
