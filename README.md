@@ -266,5 +266,12 @@ que dos personas nunca editan lo mismo. Lo que una fase necesita de otra lo usa
 por la firma acordada en *Contracts* y lo reemplaza por un doble hasta que la
 otra rama llega — por eso nadie espera a nadie.
 
+### Si preguntan por los prompts
+
+La pregunta que más se repite al ver el `spec.md` es qué se le escribió al
+agente para que saliera así. Los cinco prompts, uno por comando y en orden,
+están en [`docs/prompts-specs.md`](docs/prompts-specs.md), listos para copiar y
+pegar en pantalla.
+
 Cierre: de una especificación escrita a una app funcionando, con el trabajo
 repartido entre cinco personas.
