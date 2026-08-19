@@ -66,10 +66,11 @@ Necesitas Claude Code con API key, Node 20 y git. Nada más.
 | **Mateo** | `/speckit-implement fase 2` | `001-frontend` | pendiente |
 | **Johan** | `/speckit-implement fase 3` | `001-backend` | pendiente |
 | **Tomás** | `/speckit-implement fase 4` | `001-dashboard` | pendiente |
-| **Sergio** al final | `/speckit-implement fase 5` | `main` | pendiente |
+| **Santiago** | `/speckit-implement fase 5` | `main` | pendiente |
 
-**Sergio ya fue.** La fase 1 está en `main`, así que Mateo, Johan y Tomás pueden
-arrancar los tres al mismo tiempo, ya.
+Somos cinco y cada uno tiene una fase, sin repetir. **Sergio ya fue**: la fase 1
+está en `main`, así que Mateo, Johan y Tomás arrancan los tres al mismo tiempo,
+ya. **Santiago cierra**: junta las tres ramas y corre la fase 5.
 
 ## Los dos tags
 
@@ -106,7 +107,6 @@ Los tres siguientes arrancan al mismo tiempo, desde ya.
 git checkout main && git pull origin main
 git checkout -b 001-frontend
 /speckit-implement fase 2
-npm run lint && npm test
 git add -A && git commit -m "Fase 2 - pantallas" && git push -u origin 001-frontend
 ```
 
@@ -115,7 +115,6 @@ git add -A && git commit -m "Fase 2 - pantallas" && git push -u origin 001-front
 git checkout main && git pull origin main
 git checkout -b 001-backend
 /speckit-implement fase 3
-npm run lint && npm test
 git add -A && git commit -m "Fase 3 - backend" && git push -u origin 001-backend
 ```
 
@@ -124,12 +123,16 @@ git add -A && git commit -m "Fase 3 - backend" && git push -u origin 001-backend
 git checkout main && git pull origin main
 git checkout -b 001-dashboard
 /speckit-implement fase 4
-npm run lint && npm test
+
+# El T030 es el unico con trabajo a mano: crea las cuentas, llena las ocho
+# llaves y pasale el archivo a Santiago. Sin esto la app no genera nada.
+cp .env.local.example .env.local
+
 git add -A && git commit -m "Fase 4 - dashboard" && git push -u origin 001-dashboard
 ```
 
 ```bash
-# ── SERGIO ── para cerrar, cuando los tres hayan subido
+# ── SANTIAGO ── para cerrar, cuando los tres hayan subido
 git checkout main && git pull origin main
 git fetch origin
 
@@ -139,7 +142,6 @@ git merge origin/001-backend
 git merge origin/001-dashboard
 
 /speckit-implement fase 5
-npm run lint && npm test && npm run build
 git add -A && git commit -m "Fase 5 - integracion" && git push origin main
 npm run dev
 ```
@@ -149,11 +151,18 @@ Dos detalles de esos merges, porque los dos rompen si se hacen mal:
 - **Uno por uno.** `git merge A B C` es un merge de tres ramas a la vez y se
   cancela entero en cuanto encuentra un conflicto. El T031 dice que
   `package.json` va a conflictuar, así que ese comando fallaría siempre.
-- **Con `origin/`.** Sergio no tiene las tres ramas en local, solo `main`. Por
+- **Con `origin/`.** Santiago no tiene las tres ramas en local, solo `main`. Por
   eso el `git fetch origin` primero y el `origin/` delante del nombre.
 
 El único conflicto esperado es en `package.json`, donde cada rama agregó sus
 dependencias. Se resuelve dejando las de todas.
+
+**Por qué no hay `npm test` en ningún bloque.** Porque sería correrlo dos veces.
+La constitución del proyecto es test-first: el agente escribe la prueba que
+falla antes del código que la pasa, así que las corre solas mientras construye.
+Y el **T033**, dentro de la fase 5, es literalmente
+`npm run lint && npm test && npm run build`. El tiempo es corto y esos comandos
+no agregan nada que el agente no haya hecho ya.
 
 ---
 
@@ -191,15 +200,15 @@ dependencias. Se resuelve dejando las de todas.
 | T028 | La ruta que cambia la configuración, solo para el dueño | 4 | Tomás |
 | T029 | La pantalla del dashboard: interruptor, calidad, contadores, gasto | 4 | Tomás |
 | T030 | **Crear las cuentas reales y llenar el archivo de llaves** | 4 | Tomás |
-| T031 | Junta las tres ramas | 5 | Sergio |
-| T032 | **Comprueba que el backend falso y el real coinciden** | 5 | Sergio |
-| T033 | Corre lint, pruebas y build; arregla lo que rompió el merge | 5 | Sergio |
-| T034 | Borra los mocks que ya no hacen falta | 5 | Sergio |
-| T035 | Una prueba de humo de punta a punta | 5 | Sergio |
-| T036 | Revisión de calidad del código | 5 | Sergio |
-| T037 | **Recorrer la app a mano en un celular** | 5 | Sergio |
-| T038 | Comparar el resultado contra el proyecto original | 5 | Sergio |
-| T039 | Desplegar en Vercel | 5 | Sergio |
+| T031 | Junta las tres ramas | 5 | Santiago |
+| T032 | **Comprueba que el backend falso y el real coinciden** | 5 | Santiago |
+| T033 | Corre lint, pruebas y build; arregla lo que rompió el merge | 5 | Santiago |
+| T034 | Borra los mocks que ya no hacen falta | 5 | Santiago |
+| T035 | Una prueba de humo de punta a punta | 5 | Santiago |
+| T036 | Revisión de calidad del código | 5 | Santiago |
+| T037 | **Recorrer la app a mano en un celular** | 5 | Santiago |
+| T038 | Comparar el resultado contra el proyecto original | 5 | Santiago |
+| T039 | Desplegar en Vercel | 5 | Santiago |
 
 Los cuatro en negrita son los que deciden si la app funciona. El **T008** hace
 posible el trabajo en paralelo, el **T030** trae las llaves de verdad, el
@@ -212,7 +221,7 @@ La descripción larga de cada ticket, con las rutas de archivo exactas, está en
 
 ## Guion de la presentación
 
-El guion largo, con los tiempos minuto a minuto y los 51 comandos en orden,
+El guion largo, con los tiempos minuto a minuto y los 47 comandos en orden,
 está en [`docs/GUION-PRESENTACION.pdf`](docs/GUION-PRESENTACION.pdf). Esto es el
 resumen. Para regenerarlo después de editar el `.html` de al lado:
 `node scripts/build-guion-pdf.mjs`.
@@ -248,7 +257,7 @@ Tiene que imprimir una línea con `FEATURE_DIR`. Deja Claude Code abierto ahí.
 | 2 | Los tres | Corren su fase al mismo tiempo | Las tres pantallas a la vez |
 | 3 | Sergio | Señala los bloques `Owns` y `Never touches` de dos fases distintas | [`tasks.md`](specs/001-ai-media-generator/tasks.md) |
 | 4 | Los tres | Suben su rama | |
-| 5 | Sergio | Merge y `fase 5` | [`plan.md`](specs/001-ai-media-generator/plan.md), sección *Contracts* |
+| 5 | Santiago | Merge y `fase 5` | [`plan.md`](specs/001-ai-media-generator/plan.md), sección *Contracts* |
 | 6 | Todos | `npm run dev` y el recorrido en el celular | La app |
 
 **La frase del momento 3:** cada fase declara de qué archivos es dueña (`Owns`)
@@ -258,4 +267,4 @@ por la firma acordada en *Contracts* y lo reemplaza por un doble hasta que la
 otra rama llega — por eso nadie espera a nadie.
 
 Cierre: de una especificación escrita a una app funcionando, con el trabajo
-repartido entre cuatro personas.
+repartido entre cinco personas.
