@@ -22,6 +22,10 @@ MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/dbname
 # Clerk Authentication (get from https://dashboard.clerk.com)
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
 CLERK_SECRET_KEY=sk_test_...
+# Without this, auth.protect() bounces an anonymous visitor to Clerk's hosted
+# domain (<slug>.accounts.dev) and app/sign-in is only ever reached from the
+# landing's call to action. Set it and both paths land on the in-app screen.
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
 
 # Higgsfield API (for image and video generation) - keys from https://cloud.higgsfield.ai
 HIGGSFIELD_API_URL=https://platform.higgsfield.ai
@@ -133,7 +137,7 @@ next-env.d.ts
 ### `.react-doctor-baseline`
 
 ```text
-55
+100
 ```
 
 ### `doctor.config.json`
@@ -207,7 +211,7 @@ export default nextConfig;
 
 ```json
 {
-  "name": "ia-generator-openspec",
+  "name": "ia-generator",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -221,25 +225,25 @@ export default nextConfig;
     "docs:appendix": "node scripts/build-appendix.mjs"
   },
   "dependencies": {
-    "@clerk/nextjs": "^7.6.5",
-    "@vercel/blob": "^2.6.1",
+    "@clerk/nextjs": "^7.7.8",
+    "@vercel/blob": "^2.8.0",
     "mongodb": "^7.5.0",
-    "next": "16.3.0",
+    "next": "16.3.1",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
-    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.3",
+    "@testing-library/user-event": "^14.6.5",
     "eslint": "^9",
-    "eslint-config-next": "16.3.0",
+    "eslint-config-next": "16.3.1",
     "jsdom": "^29.1.1",
     "msw": "^2.15.0",
     "tailwindcss": "^4",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
   }
 }
 ```
@@ -1266,7 +1270,12 @@ const pending = (status) => status === "queued" || status === "in_progress";
 // ponytail: inline polling because the capture screen waits on the response.
 // Move the image to the job table (like video) if generation outgrows the
 // serverless timeout.
-const waitForResult = async (requestId, attempts = 60) => {
+// The budget is attempts, not seconds: each turn costs the status request's own
+// latency on top of the 2s sleep, so 90 attempts is ~3.5min of wall clock, not
+// 180s. Raised from 60 after a measured run finished at 138s with only a few
+// attempts to spare (trap 23). On Vercel this needs `export const maxDuration`
+// on app/api/image/route.js to match, capped by the plan's ceiling.
+const waitForResult = async (requestId, attempts = 90) => {
   for (let i = 0; i < attempts; i++) {
     const body = await requestStatus(requestId);
     if (!pending(body.status)) return body;
@@ -3961,9 +3970,7 @@ export class FakeCollection {
   }
 
   async findOne(filter) {
-    return this.docs.find((doc) => {
-      return Object.entries(filter).every(([key, val]) => doc[key] === val);
-    });
+    return this.docs.find((doc) => matches(doc, filter));
   }
 
   async insertOne(doc) {
@@ -3982,10 +3989,19 @@ export class FakeCollection {
   }
 
   async countDocuments(filter = {}) {
-    return this.docs.filter((doc) => {
-      return Object.entries(filter).every(([key, val]) => doc[key] === val);
-    }).length;
+    return this.docs.filter((doc) => matches(doc, filter)).length;
   }
+}
+
+// Exact match on each key, except a `{ $gte: value }` operand, which does a
+// range comparison. Covers "generations today" style date-range counts.
+function matches(doc, filter) {
+  return Object.entries(filter).every(([key, val]) => {
+    if (val && typeof val === "object" && "$gte" in val) {
+      return doc[key] >= val.$gte;
+    }
+    return doc[key] === val;
+  });
 }
 ```
 
@@ -4234,7 +4250,10 @@ import { execSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-const SKIP = /^(docs\/|openspec\/|\.claude\/|\.agents\/|node_modules\/|public\/(icon|.*\.svg|favicon))|package-lock\.json|skills-lock\.json|\.mcp\.json|AGENTS\.md|CLAUDE\.md|README\.md|\.ico$|\.png$/;
+// specs/ and .specify/ hold the spec-kit artefacts that describe the app; the
+// two PDF builders and the extractor are authoring tooling. None of them are
+// the app, so none belong in an appendix of the app's source.
+const SKIP = /^(docs\/|openspec\/|specs\/|\.specify\/|\.claude\/|\.agents\/|node_modules\/|public\/(icon|.*\.svg|favicon)|scripts\/(build-guide-pdf|build-guion-pdf|extract-from-appendix)\.mjs)|package-lock\.json|skills-lock\.json|\.mcp\.json|AGENTS\.md|CLAUDE\.md|README\.md|\.ico$|\.png$/;
 
 const ORDER = [
   ["Configuration", /^(package\.json|next\.config\.mjs|jsconfig\.json|postcss\.config\.mjs|eslint\.config\.mjs|vitest\.config\.mjs|vitest\.setup\.js|playwright\.config\.js|doctor\.config\.json|\.react-doctor-baseline|\.env\.local\.example|\.gitignore|\.github\/)/],

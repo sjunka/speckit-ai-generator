@@ -215,7 +215,7 @@ Higgsfield, `https://platform.higgsfield.ai`, header
 - Video prompt, fixed: `Smooth cinematic camera move, gentle natural motion.`
 - The provider takes a **public URL, not bytes**. The user's photo goes to blob
   storage before generation, and the generated image goes to blob storage after.
-- Image generation polls inline, every 2s, up to 60 attempts, and returns the
+- Image generation polls inline, every 2s, up to 90 attempts, and returns the
   bytes. Video generation returns a job id and is polled by the client.
 - **The poll throws when the attempts run out** (`Image provider timed out`),
   and the URL it read is checked before use (`Image provider returned no
@@ -223,7 +223,8 @@ Higgsfield, `https://platform.higgsfield.ai`, header
   `fetch(undefined)` crash blaming the URL (trap 22).
 - Measured against the live API: an image sits `queued` up to ~45s before it
   starts; two real runs landed at 59s and 115s; a video takes ~4-5 minutes.
-  60 attempts is 120s, so the headroom is seconds, not minutes (trap 23).
+  90 attempts is ~3.5min of wall clock, raised from 60 after a run measured
+  138s (trap 23).
 
 ## 6. Design system
 
