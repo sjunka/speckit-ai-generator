@@ -51,7 +51,7 @@ parallel, and a merge.
 
 **Project Type**: Single Next.js application. No separate backend — the API routes are part of it
 
-**Performance Goals**: First generated image on screen within 90 seconds of opening the product on a phone. Full test suite green in under 60 seconds
+**Performance Goals**: First generated image on screen within 90 seconds of opening the product on a phone — that is the target for the product's own work, and it holds when the provider queue is quiet (a measured run: ~60s end to end). The provider queue is shared and not ours to control, so this is a target and not an assertion — the route's inline poll gives it 120s (see Provider) before it gives up with a timeout error. Full test suite green in under 60 seconds
 
 **Constraints**: The suite runs with no credentials, no database and no network. Every control at least 44px tall. Body text clears 4.5:1 on every surface. No screen scrolls horizontally at 360px. No `max-width` media queries anywhere
 
@@ -155,10 +155,13 @@ Higgsfield, `https://platform.higgsfield.ai`, header
 `Authorization: Key ${HIGGSFIELD_API_KEY}:${HIGGSFIELD_API_SECRET}`.
 
 - `POST /{model}` returns `{ request_id }`. `GET /requests/{request_id}/status` returns `{ status, images?, video? }`; `queued` and `in_progress` mean pending, `completed` means done.
+- **The assets come wrapped in objects, not as plain strings**: `images` is `[{ url }]` and `video` is `{ url }` — `status.images[0].url`, `status.video.url` (trap 21). Verified against the live API.
 - Image model `higgsfield-ai/soul/reference`, which takes `image_reference_url`. `soul/standard` is text-to-image and silently drops the photo.
 - Video models `higgsfield-ai/dop/{lite,standard,turbo}`. Quality is a model choice, not a request field.
 - The provider takes a **public URL, not bytes**. The photo goes to blob storage before generation and the generated image goes to blob storage after.
 - Image generation polls inline every 2s up to 60 attempts and returns bytes. Video generation returns a job id the client polls.
+- **The poll must throw when it runs out of attempts** (`Image provider timed out`), and the URL it read must be checked before use (`Image provider returned no image`). Falling out of the loop and reading `status.images` anyway turns a timeout into a `fetch(undefined)` crash that names the wrong cause (trap 22).
+- Measured against the live API: an image sits `queued` up to ~45s before it starts; two real runs landed at 59s and 115s; a video takes ~4-5 minutes. 60 attempts is 120s, so the headroom here is seconds, not minutes — a known, deliberate ceiling (trap 23).
 - Both prompts are fixed strings — copy them from `docs/REPLICATION-PROMPT.md` §5 character for character; the tests assert them.
 
 ## Project Structure
