@@ -107,6 +107,7 @@ Los tres siguientes arrancan al mismo tiempo, desde ya.
 git checkout main && git pull origin main
 git checkout -b 001-frontend
 /speckit-implement fase 2
+npm test
 git add -A && git commit -m "Fase 2 - pantallas" && git push -u origin 001-frontend
 ```
 
@@ -115,6 +116,7 @@ git add -A && git commit -m "Fase 2 - pantallas" && git push -u origin 001-front
 git checkout main && git pull origin main
 git checkout -b 001-backend
 /speckit-implement fase 3
+npm test
 git add -A && git commit -m "Fase 3 - backend" && git push -u origin 001-backend
 ```
 
@@ -128,6 +130,7 @@ git checkout -b 001-dashboard
 # llaves y pasale el archivo a Santiago. Sin esto la app no genera nada.
 cp .env.local.example .env.local
 
+npm test
 git add -A && git commit -m "Fase 4 - dashboard" && git push -u origin 001-dashboard
 ```
 
@@ -142,6 +145,7 @@ git merge origin/001-backend
 git merge origin/001-dashboard
 
 /speckit-implement fase 5
+npm test
 git add -A && git commit -m "Fase 5 - integracion" && git push origin main
 npm run dev
 ```
@@ -157,12 +161,14 @@ Dos detalles de esos merges, porque los dos rompen si se hacen mal:
 El único conflicto esperado es en `package.json`, donde cada rama agregó sus
 dependencias. Se resuelve dejando las de todas.
 
-**Por qué no hay `npm test` en ningún bloque.** Porque sería correrlo dos veces.
-La constitución del proyecto es test-first: el agente escribe la prueba que
-falla antes del código que la pasa, así que las corre solas mientras construye.
-Y el **T033**, dentro de la fase 5, es literalmente
-`npm run lint && npm test && npm run build`. El tiempo es corto y esos comandos
-no agregan nada que el agente no haya hecho ya.
+**El `npm test` antes de subir.** Una línea suelta, sin encadenar con nada. No
+está ahí para descubrir errores: la constitución del proyecto es test-first, así
+que el agente ya escribió y corrió esas pruebas mientras construía. Está para
+verlas pasar con tus propios ojos antes de que tu rama salga de tu máquina, y
+para poder decir en voz alta cuántas hay en verde.
+
+Si sale en rojo, no subas: significa que el agente dejó algo a medias, y es mejor
+saberlo antes del merge que durante.
 
 ---
 
@@ -324,7 +330,7 @@ La descripción larga de cada ticket, con las rutas de archivo exactas, está en
 
 ## Guion de la presentación
 
-El guion largo, con los tiempos minuto a minuto y los 47 comandos en orden,
+El guion largo, con los tiempos minuto a minuto y los 51 comandos en orden,
 está en [`docs/GUION-PRESENTACION.pdf`](docs/GUION-PRESENTACION.pdf). Esto es el
 resumen. Para regenerarlo después de editar el `.html` de al lado:
 `node scripts/build-guion-pdf.mjs`.

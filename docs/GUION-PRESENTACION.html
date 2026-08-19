@@ -53,11 +53,10 @@ td.mono{font-family:"SF Mono",Menlo,monospace;font-size:8.3pt;white-space:nowrap
   <p><b>Todo se construye antes.</b> Un agente tarda 5–15 min por ticket; en 10 minutos no
   cabe. En vivo se lanzan los comandos, se habla mientras corren, y se demuestra la app
   ya terminada.</p>
-  <p><b>Comandos mínimos.</b> No hay <code>npm test</code> en ningún bloque, a propósito. La
-  constitución del proyecto es test-first: el agente corre las pruebas solo mientras
-  construye, y el <b>T033</b> de la fase 5 ya es
-  <code>npm&nbsp;run&nbsp;lint&nbsp;&amp;&amp;&nbsp;npm&nbsp;test&nbsp;&amp;&amp;&nbsp;npm&nbsp;run&nbsp;build</code>.
-  Correrlos a mano sería hacerlo dos veces.</p>
+  <p><b>Un <code>npm test</code> antes de cada push.</b> Una línea suelta, sin encadenar con
+  nada. El agente ya corre las pruebas mientras construye, así que esta pasa en verde —
+  no es para descubrir errores, es para verlas pasar antes de subir y poder decirlo en
+  voz alta. Si sale en rojo, no subas: es que el agente dejó algo a medias.</p>
   <p><b>Dos carpetas, no una.</b> El <b>repo real</b> queda con todo construido y el
   <code>.env.local</code> puesto — de ahí sale el <code>npm&nbsp;run&nbsp;dev</code> del final. La
   <b>carpeta de demo</b> queda en el estado justo después de la fase 1 — ahí se lanzan los
@@ -90,18 +89,21 @@ td.mono{font-family:"SF Mono",Menlo,monospace;font-size:8.3pt;white-space:nowrap
 <span class="f">git</span> checkout <span class="s">main</span> <span class="b">&amp;&amp;</span> <span class="f">git</span> pull origin <span class="s">main</span>
 <span class="f">git</span> checkout -b <span class="s">001-frontend</span>
 <span class="k">/speckit-implement</span> <span class="n">fase 2</span>
+<span class="f">npm</span> test
 <span class="f">git</span> add -A <span class="b">&amp;&amp;</span> <span class="f">git</span> commit -m <span class="s">"Fase 2 - pantallas"</span>
 <span class="f">git</span> push -u origin <span class="s">001-frontend</span></code></pre>
 <pre><code><span class="c"># ── JOHAN ── el backend</span>
 <span class="f">git</span> checkout <span class="s">main</span> <span class="b">&amp;&amp;</span> <span class="f">git</span> pull origin <span class="s">main</span>
 <span class="f">git</span> checkout -b <span class="s">001-backend</span>
 <span class="k">/speckit-implement</span> <span class="n">fase 3</span>
+<span class="f">npm</span> test
 <span class="f">git</span> add -A <span class="b">&amp;&amp;</span> <span class="f">git</span> commit -m <span class="s">"Fase 3 - backend"</span>
 <span class="f">git</span> push -u origin <span class="s">001-backend</span></code></pre>
 <pre><code><span class="c"># ── TOMÁS ── el dashboard</span>
 <span class="f">git</span> checkout <span class="s">main</span> <span class="b">&amp;&amp;</span> <span class="f">git</span> pull origin <span class="s">main</span>
 <span class="f">git</span> checkout -b <span class="s">001-dashboard</span>
 <span class="k">/speckit-implement</span> <span class="n">fase 4</span>
+<span class="f">npm</span> test
 <span class="f">git</span> add -A <span class="b">&amp;&amp;</span> <span class="f">git</span> commit -m <span class="s">"Fase 4 - dashboard"</span>
 <span class="f">git</span> push -u origin <span class="s">001-dashboard</span></code></pre>
 </div>
@@ -128,6 +130,7 @@ td.mono{font-family:"SF Mono",Menlo,monospace;font-size:8.3pt;white-space:nowrap
 
 <span class="k">/speckit-implement</span> <span class="n">fase 5</span>
 
+<span class="f">npm</span> test
 <span class="f">git</span> add -A <span class="b">&amp;&amp;</span> <span class="f">git</span> commit -m <span class="s">"Fase 5 - integracion"</span>
 <span class="f">git</span> push origin <span class="s">main</span></code></pre>
 <p class="do">Copia el <code>.env.local</code> de Tomás a la raíz del repo real y comprueba que <code>npm run dev</code> genera una imagen de verdad. Este es el repo del que sale la demo del final, y es de Santiago.</p>
@@ -143,18 +146,18 @@ td.mono{font-family:"SF Mono",Menlo,monospace;font-size:8.3pt;white-space:nowrap
 
 <span class="c"># Comprueba que el agente encuentra sus archivos</span>
 <span class="f">bash</span> .specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks</code></pre>
-<p class="do">Tiene que imprimir una línea con <code>FEATURE_DIR</code>. Abre Claude Code en esta carpeta y déjala lista en pantalla.</p>
+<p class="do">Tiene que imprimir una línea con <code>FEATURE_DIR</code>. Abre ahí tu agente — Claude Code, Cursor, Copilot, el que uses — y deja la carpeta lista en pantalla.</p>
 </div>
 
 <div class="step">
 <h3><span class="num">6</span> Cinco minutos antes</h3>
 <table>
 <tr><th>Quién</th><th>Ventana 1 — demo-speckit</th><th>Ventana 2 — repo real</th></tr>
-<tr><td><b>Sergio</b></td><td>Claude Code abierto, y <code>spec.md</code>, <code>plan.md</code> y <code>tasks.md</code> ya abiertos en pestañas</td><td>—</td></tr>
-<tr><td><b>Mateo</b></td><td>Claude Code abierto en la carpeta</td><td>—</td></tr>
-<tr><td><b>Johan</b></td><td>Claude Code abierto en la carpeta</td><td>—</td></tr>
-<tr><td><b>Tomás</b></td><td>Claude Code abierto en la carpeta</td><td>El celular con la app y <code>/dashboard</code> abierto</td></tr>
-<tr><td><b>Santiago</b></td><td>Claude Code abierto en la carpeta</td><td><code>npm run dev</code> corriendo y el navegador en <code>localhost:3000</code></td></tr>
+<tr><td><b>Sergio</b></td><td>Tu agente abierto, y <code>spec.md</code>, <code>plan.md</code> y <code>tasks.md</code> ya abiertos en pestañas</td><td>—</td></tr>
+<tr><td><b>Mateo</b></td><td>Tu agente abierto en la carpeta</td><td>—</td></tr>
+<tr><td><b>Johan</b></td><td>Tu agente abierto en la carpeta</td><td>—</td></tr>
+<tr><td><b>Tomás</b></td><td>Tu agente abierto en la carpeta</td><td>El celular con la app y <code>/dashboard</code> abierto</td></tr>
+<tr><td><b>Santiago</b></td><td>Tu agente abierto en la carpeta</td><td><code>npm run dev</code> corriendo y el navegador en <code>localhost:3000</code></td></tr>
 </table>
 </div>
 
@@ -229,8 +232,9 @@ td.mono{font-family:"SF Mono",Menlo,monospace;font-size:8.3pt;white-space:nowrap
 
 <div class="beat">
 <div class="meta"><span class="t">5:15</span><span class="who">SANTIAGO</span><span class="dur">1 min</span></div>
-<p class="say"><b>Dice</b><q>Cuando las tres ramas terminan, cada uno sube la suya y yo las junto. Esa es la fase 5.</q></p>
-<pre><code><span class="c"># Cada uno sube la suya</span>
+<p class="say"><b>Dice</b><q>Cuando las tres ramas terminan, cada uno corre las pruebas, ve que están en verde, y sube la suya. Yo las junto. Esa es la fase 5.</q></p>
+<pre><code><span class="c"># Cada uno corre sus pruebas y sube la suya</span>
+<span class="f">npm</span> test
 <span class="f">git</span> push -u origin <span class="s">001-frontend</span>
 <span class="f">git</span> push -u origin <span class="s">001-backend</span>
 <span class="f">git</span> push -u origin <span class="s">001-dashboard</span>
@@ -280,45 +284,49 @@ td.mono{font-family:"SF Mono",Menlo,monospace;font-size:8.3pt;white-space:nowrap
 <tr><td>6</td><td>Antes</td><td>Mateo</td><td class="mono">git checkout main &amp;&amp; git pull origin main</td></tr>
 <tr><td>7</td><td>Antes</td><td>Mateo</td><td class="mono">git checkout -b 001-frontend</td></tr>
 <tr><td>8</td><td>Antes</td><td>Mateo</td><td class="mono">/speckit-implement fase 2</td></tr>
-<tr><td>9</td><td>Antes</td><td>Mateo</td><td class="mono">git add -A &amp;&amp; git commit -m &quot;Fase 2 - pantallas&quot;</td></tr>
-<tr><td>10</td><td>Antes</td><td>Mateo</td><td class="mono">git push -u origin 001-frontend</td></tr>
-<tr><td>11</td><td>Antes</td><td>Johan</td><td class="mono">git checkout main &amp;&amp; git pull origin main</td></tr>
-<tr><td>12</td><td>Antes</td><td>Johan</td><td class="mono">git checkout -b 001-backend</td></tr>
-<tr><td>13</td><td>Antes</td><td>Johan</td><td class="mono">/speckit-implement fase 3</td></tr>
-<tr><td>14</td><td>Antes</td><td>Johan</td><td class="mono">git add -A &amp;&amp; git commit -m &quot;Fase 3 - backend&quot;</td></tr>
-<tr><td>15</td><td>Antes</td><td>Johan</td><td class="mono">git push -u origin 001-backend</td></tr>
-<tr><td>16</td><td>Antes</td><td>Tomás</td><td class="mono">git checkout main &amp;&amp; git pull origin main</td></tr>
-<tr><td>17</td><td>Antes</td><td>Tomás</td><td class="mono">git checkout -b 001-dashboard</td></tr>
-<tr><td>18</td><td>Antes</td><td>Tomás</td><td class="mono">/speckit-implement fase 4</td></tr>
-<tr><td>19</td><td>Antes</td><td>Tomás</td><td class="mono">cp .env.local.example .env.local <span class="c">← a mano, y pásaselo a Santiago</span></td></tr>
-<tr><td>20</td><td>Antes</td><td>Tomás</td><td class="mono">git add -A &amp;&amp; git commit -m &quot;Fase 4 - dashboard&quot;</td></tr>
-<tr><td>21</td><td>Antes</td><td>Tomás</td><td class="mono">git push -u origin 001-dashboard</td></tr>
-<tr><td>22</td><td>Antes</td><td>Santiago</td><td class="mono">git checkout main &amp;&amp; git pull origin main</td></tr>
-<tr><td>23</td><td>Antes</td><td>Santiago</td><td class="mono">git fetch origin</td></tr>
-<tr><td>24</td><td>Antes</td><td>Santiago</td><td class="mono">git merge origin/001-frontend</td></tr>
-<tr><td>25</td><td>Antes</td><td>Santiago</td><td class="mono">git merge origin/001-backend</td></tr>
-<tr><td>26</td><td>Antes</td><td>Santiago</td><td class="mono">git merge origin/001-dashboard</td></tr>
-<tr><td>27</td><td>Antes</td><td>Santiago</td><td class="mono">/speckit-implement fase 5</td></tr>
-<tr><td>28</td><td>Antes</td><td>Santiago</td><td class="mono">git add -A &amp;&amp; git commit -m &quot;Fase 5 - integracion&quot;</td></tr>
-<tr><td>29</td><td>Antes</td><td>Santiago</td><td class="mono">git push origin main</td></tr>
-<tr><td>30</td><td>Antes</td><td>Los cinco</td><td class="mono">git clone https://github.com/sjunka/speckit-ai-generator.git demo-speckit</td></tr>
-<tr><td>31</td><td>Antes</td><td>Los cinco</td><td class="mono">cd demo-speckit &amp;&amp; git checkout fase-1</td></tr>
-<tr><td>32</td><td>Antes</td><td>Los cinco</td><td class="mono">npm install</td></tr>
-<tr><td>33</td><td>Antes</td><td>Los cinco</td><td class="mono">bash .specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks</td></tr>
-<tr><td>34</td><td>0:45</td><td>Sergio</td><td class="mono">ls specs/001-ai-media-generator/</td></tr>
-<tr><td>35</td><td>1:45</td><td>Mateo</td><td class="mono">git checkout -b 001-frontend</td></tr>
-<tr><td>36</td><td>1:45</td><td>Mateo</td><td class="mono">/speckit-implement fase 2</td></tr>
-<tr><td>37</td><td>1:45</td><td>Johan</td><td class="mono">git checkout -b 001-backend</td></tr>
-<tr><td>38</td><td>1:45</td><td>Johan</td><td class="mono">/speckit-implement fase 3</td></tr>
-<tr><td>39</td><td>1:45</td><td>Tomás</td><td class="mono">git checkout -b 001-dashboard</td></tr>
-<tr><td>40</td><td>1:45</td><td>Tomás</td><td class="mono">/speckit-implement fase 4</td></tr>
-<tr><td>41</td><td>5:15</td><td>Los tres</td><td class="mono">git push -u origin 001-frontend / -backend / -dashboard</td></tr>
-<tr><td>42</td><td>5:15</td><td>Santiago</td><td class="mono">git checkout main &amp;&amp; git fetch origin</td></tr>
-<tr><td>43</td><td>5:15</td><td>Santiago</td><td class="mono">git merge origin/001-frontend</td></tr>
-<tr><td>44</td><td>5:15</td><td>Santiago</td><td class="mono">git merge origin/001-backend</td></tr>
-<tr><td>45</td><td>5:15</td><td>Santiago</td><td class="mono">git merge origin/001-dashboard</td></tr>
-<tr><td>46</td><td>5:15</td><td>Santiago</td><td class="mono">/speckit-implement fase 5</td></tr>
-<tr><td>47</td><td>6:15</td><td>Santiago</td><td class="mono">npm run dev <span class="c">← en el repo real</span></td></tr>
+<tr><td>9</td><td>Antes</td><td>Mateo</td><td class="mono">npm test</td></tr>
+<tr><td>10</td><td>Antes</td><td>Mateo</td><td class="mono">git add -A &amp;&amp; git commit -m &quot;Fase 2 - pantallas&quot;</td></tr>
+<tr><td>11</td><td>Antes</td><td>Mateo</td><td class="mono">git push -u origin 001-frontend</td></tr>
+<tr><td>12</td><td>Antes</td><td>Johan</td><td class="mono">git checkout main &amp;&amp; git pull origin main</td></tr>
+<tr><td>13</td><td>Antes</td><td>Johan</td><td class="mono">git checkout -b 001-backend</td></tr>
+<tr><td>14</td><td>Antes</td><td>Johan</td><td class="mono">/speckit-implement fase 3</td></tr>
+<tr><td>15</td><td>Antes</td><td>Johan</td><td class="mono">npm test</td></tr>
+<tr><td>16</td><td>Antes</td><td>Johan</td><td class="mono">git add -A &amp;&amp; git commit -m &quot;Fase 3 - backend&quot;</td></tr>
+<tr><td>17</td><td>Antes</td><td>Johan</td><td class="mono">git push -u origin 001-backend</td></tr>
+<tr><td>18</td><td>Antes</td><td>Tomás</td><td class="mono">git checkout main &amp;&amp; git pull origin main</td></tr>
+<tr><td>19</td><td>Antes</td><td>Tomás</td><td class="mono">git checkout -b 001-dashboard</td></tr>
+<tr><td>20</td><td>Antes</td><td>Tomás</td><td class="mono">/speckit-implement fase 4</td></tr>
+<tr><td>21</td><td>Antes</td><td>Tomás</td><td class="mono">cp .env.local.example .env.local <span class="c">← a mano, y pásaselo a Santiago</span></td></tr>
+<tr><td>22</td><td>Antes</td><td>Tomás</td><td class="mono">npm test</td></tr>
+<tr><td>23</td><td>Antes</td><td>Tomás</td><td class="mono">git add -A &amp;&amp; git commit -m &quot;Fase 4 - dashboard&quot;</td></tr>
+<tr><td>24</td><td>Antes</td><td>Tomás</td><td class="mono">git push -u origin 001-dashboard</td></tr>
+<tr><td>25</td><td>Antes</td><td>Santiago</td><td class="mono">git checkout main &amp;&amp; git pull origin main</td></tr>
+<tr><td>26</td><td>Antes</td><td>Santiago</td><td class="mono">git fetch origin</td></tr>
+<tr><td>27</td><td>Antes</td><td>Santiago</td><td class="mono">git merge origin/001-frontend</td></tr>
+<tr><td>28</td><td>Antes</td><td>Santiago</td><td class="mono">git merge origin/001-backend</td></tr>
+<tr><td>29</td><td>Antes</td><td>Santiago</td><td class="mono">git merge origin/001-dashboard</td></tr>
+<tr><td>30</td><td>Antes</td><td>Santiago</td><td class="mono">/speckit-implement fase 5</td></tr>
+<tr><td>31</td><td>Antes</td><td>Santiago</td><td class="mono">npm test</td></tr>
+<tr><td>32</td><td>Antes</td><td>Santiago</td><td class="mono">git add -A &amp;&amp; git commit -m &quot;Fase 5 - integracion&quot;</td></tr>
+<tr><td>33</td><td>Antes</td><td>Santiago</td><td class="mono">git push origin main</td></tr>
+<tr><td>34</td><td>Antes</td><td>Los cinco</td><td class="mono">git clone https://github.com/sjunka/speckit-ai-generator.git demo-speckit</td></tr>
+<tr><td>35</td><td>Antes</td><td>Los cinco</td><td class="mono">cd demo-speckit &amp;&amp; git checkout fase-1</td></tr>
+<tr><td>36</td><td>Antes</td><td>Los cinco</td><td class="mono">npm install</td></tr>
+<tr><td>37</td><td>Antes</td><td>Los cinco</td><td class="mono">bash .specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks</td></tr>
+<tr><td>38</td><td>0:45</td><td>Sergio</td><td class="mono">ls specs/001-ai-media-generator/</td></tr>
+<tr><td>39</td><td>1:45</td><td>Mateo</td><td class="mono">git checkout -b 001-frontend</td></tr>
+<tr><td>40</td><td>1:45</td><td>Mateo</td><td class="mono">/speckit-implement fase 2</td></tr>
+<tr><td>41</td><td>1:45</td><td>Johan</td><td class="mono">git checkout -b 001-backend</td></tr>
+<tr><td>42</td><td>1:45</td><td>Johan</td><td class="mono">/speckit-implement fase 3</td></tr>
+<tr><td>43</td><td>1:45</td><td>Tomás</td><td class="mono">git checkout -b 001-dashboard</td></tr>
+<tr><td>44</td><td>1:45</td><td>Tomás</td><td class="mono">/speckit-implement fase 4</td></tr>
+<tr><td>45</td><td>5:15</td><td>Los tres</td><td class="mono">git push -u origin 001-frontend / -backend / -dashboard</td></tr>
+<tr><td>46</td><td>5:15</td><td>Santiago</td><td class="mono">git checkout main &amp;&amp; git fetch origin</td></tr>
+<tr><td>47</td><td>5:15</td><td>Santiago</td><td class="mono">git merge origin/001-frontend</td></tr>
+<tr><td>48</td><td>5:15</td><td>Santiago</td><td class="mono">git merge origin/001-backend</td></tr>
+<tr><td>49</td><td>5:15</td><td>Santiago</td><td class="mono">git merge origin/001-dashboard</td></tr>
+<tr><td>50</td><td>5:15</td><td>Santiago</td><td class="mono">/speckit-implement fase 5</td></tr>
+<tr><td>51</td><td>6:15</td><td>Santiago</td><td class="mono">npm run dev <span class="c">← en el repo real</span></td></tr>
 </table>
 
 <div class="step">
@@ -330,6 +338,17 @@ td.mono{font-family:"SF Mono",Menlo,monospace;font-size:8.3pt;white-space:nowrap
 <tr><td>El agente empieza a construir las cinco fases</td><td>Se te olvidó el argumento. Párralo y corre <code>/speckit-implement fase N</code>.</td></tr>
 <tr><td>La app no genera nada en el minuto 6:15</td><td>Falta el <code>.env.local</code> en la raíz del repo real. Cópialo y reinicia <code>npm run dev</code>.</td></tr>
 <tr><td>Un merge queda en conflicto</td><td>Es <code>package.json</code>, y es lo esperado: deja las dependencias de las dos ramas. No lo hagas en vivo.</td></tr>
+<tr><td><code>npm test</code> sale en rojo en la carpeta de demo</td><td>Normal: ahí el agente sigue construyendo a media fase. El <code>npm test</code> del guion es el de <b>antes</b>, sobre la fase terminada. En vivo no lo corras.</td></tr>
+</table>
+</div>
+
+<div class="step">
+<h3>Si preguntan</h3>
+<table>
+<tr><th>Preguntan</th><th>Respondes</th></tr>
+<tr><td>¿Qué le escribieron al agente para que saliera ese <code>spec.md</code>?</td><td>Los cinco prompts, uno por comando, están en <code>docs/prompts-specs.md</code>. Ábrelo y muestra el de <code>/speckit.specify</code>.</td></tr>
+<tr><td>¿Esto solo funciona con Claude Code?</td><td>No. El comando es un archivo de texto del repo, <code>.claude/skills/speckit-implement/SKILL.md</code>, y cualquier agente puede seguirlo. El README tiene la sección <b>Si no tienes Claude Code</b> con el prompt para pegar.</td></tr>
+<tr><td>¿Y las pruebas las escribió el agente después del código?</td><td>No: la constitución es test-first y el orden se ve en el historial de git. Por eso el <code>npm test</code> antes de subir sale en verde y no descubre nada.</td></tr>
 </table>
 </div>
 
