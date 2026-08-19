@@ -3,13 +3,15 @@
 App donde tomas una foto, la IA la convierte en imagen, y esa imagen se vuelve
 un video corto.
 
-**El código no existe todavía.** Está descrito en `specs/`, y el agente lo
-escribe a partir de esa descripción. Eso es Spec-Driven Development: la
+**Casi nada del código existe todavía.** Está descrito en `specs/`, y el agente
+lo escribe a partir de esa descripción. Eso es Spec-Driven Development: la
 especificación es la fuente de verdad, el código es la salida.
 
 En este repo ya están escritas las cuatro piezas que Spec Kit necesita — las
 reglas del proyecto, qué hace la app, cómo se construye, y los 39 tickets.
-Falta correrlos.
+
+**La fase 1 ya se corrió.** T001–T009 están construidos y en `main`, con 72
+pruebas en verde, lint y build pasando. Faltan las fases 2, 3, 4 y 5.
 
 ## Pruébalo en local antes de la presentación
 
@@ -21,7 +23,10 @@ carpeta aparte y bórrala al terminar; no subas nada.**
 git clone https://github.com/sjunka/speckit-ai-generator.git practica-speckit
 cd practica-speckit
 
-# 2. Comprueba que el agente encuentra sus archivos
+# 2. Retrocede al estado anterior a la fase 1, para que T001 tenga qué construir
+git checkout pre-fase-1
+
+# 3. Comprueba que el agente encuentra sus archivos
 bash .specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks
 ```
 
@@ -44,77 +49,111 @@ fíjate al final en cómo marca el ticket como hecho en `tasks.md`. Ese es el
 ciclo completo.
 
 ```bash
-# 3. Borra la práctica
+# 4. Borra la práctica
 cd .. && rm -rf practica-speckit
 ```
+
+Sin el `git checkout pre-fase-1` la práctica no sirve: `main` ya tiene la fase 1
+construida, así que T001 no encontraría nada que hacer.
 
 Necesitas Claude Code con API key, Node 20 y git. Nada más.
 
 ## Tu comando
 
-| Quién | Comando | Rama |
-|---|---|---|
-| **Sergio** | `/speckit-implement fase 1` | `main` |
-| **Mateo** | `/speckit-implement fase 2` | `001-frontend` |
-| **Johan** | `/speckit-implement fase 3` | `001-backend` |
-| **Tomás** | `/speckit-implement fase 4` | `001-dashboard` |
-| **Sergio** al final | `/speckit-implement fase 5` | `main` |
+| Quién | Comando | Rama | Estado |
+|---|---|---|---|
+| **Sergio** | `/speckit-implement fase 1` | `main` | **hecho** — ya está en `main` |
+| **Mateo** | `/speckit-implement fase 2` | `001-frontend` | pendiente |
+| **Johan** | `/speckit-implement fase 3` | `001-backend` | pendiente |
+| **Tomás** | `/speckit-implement fase 4` | `001-dashboard` | pendiente |
+| **Sergio** al final | `/speckit-implement fase 5` | `main` | pendiente |
 
-**Sergio va primero.** Los otros tres no pueden empezar hasta que sus tickets
-estén en `main`. Después, los tres corren al mismo tiempo.
+**Sergio ya fue.** La fase 1 está en `main`, así que Mateo, Johan y Tomás pueden
+arrancar los tres al mismo tiempo, ya.
+
+## Los dos tags
+
+Dos puntos marcados en la historia. Los dos importan y hacen cosas distintas.
+
+| Tag | Qué es | Para qué |
+|---|---|---|
+| `pre-fase-1` | El repo sin código, solo las specs | La práctica de arriba: `/speckit-implement T001` tiene trabajo que hacer |
+| `fase-1` | La fase 1 construida, antes de las otras tres | La carpeta de demo del día de la presentación |
 
 ## Los tres errores que rompen todo
 
 1. Es `/speckit-implement`, **no** `/implement`
 2. **Nunca sin decir la fase** — sin argumento construye las cinco, las tuyas y
    las de los demás
-3. Nadie arranca hasta que la fase 1 de Sergio esté en `main`
+3. Los merges de la fase 5 van **uno por uno**, nunca los tres en un solo
+   comando — `git merge A B C` se cancela entero si encuentra un conflicto, y
+   `package.json` va a conflictuar
 
 ## Qué hace cada quien
 
 Cada uno copia su bloque. El nombre está arriba y la rama va escrita completa.
 
 ```bash
-# ── SERGIO ── antes de la presentación, en main
-git checkout main
-/speckit-implement fase 1
-npm run lint && npm test && npm run build
-git add -A && git commit -m "Fase 1 - la base" && git push origin main
+# ── SERGIO ── HECHO. La fase 1 ya está en main, no hay que volver a correrla.
+#             Quedó marcada con el tag fase-1.
+git checkout main && git pull origin main
 ```
 
-Cuando eso esté arriba, los tres siguientes arrancan al mismo tiempo.
+Los tres siguientes arrancan al mismo tiempo, desde ya.
 
 ```bash
 # ── MATEO ── las pantallas
-git pull origin main
+git checkout main && git pull origin main
 git checkout -b 001-frontend
 /speckit-implement fase 2
+npm run lint && npm test
 git add -A && git commit -m "Fase 2 - pantallas" && git push -u origin 001-frontend
 ```
 
 ```bash
 # ── JOHAN ── el backend
-git pull origin main
+git checkout main && git pull origin main
 git checkout -b 001-backend
 /speckit-implement fase 3
+npm run lint && npm test
 git add -A && git commit -m "Fase 3 - backend" && git push -u origin 001-backend
 ```
 
 ```bash
 # ── TOMÁS ── el dashboard
-git pull origin main
+git checkout main && git pull origin main
 git checkout -b 001-dashboard
 /speckit-implement fase 4
+npm run lint && npm test
 git add -A && git commit -m "Fase 4 - dashboard" && git push -u origin 001-dashboard
 ```
 
 ```bash
 # ── SERGIO ── para cerrar, cuando los tres hayan subido
-git checkout main
-git merge 001-frontend 001-backend 001-dashboard
+git checkout main && git pull origin main
+git fetch origin
+
+# Uno por uno. Nunca los tres en un solo comando.
+git merge origin/001-frontend
+git merge origin/001-backend
+git merge origin/001-dashboard
+
 /speckit-implement fase 5
+npm run lint && npm test && npm run build
+git add -A && git commit -m "Fase 5 - integracion" && git push origin main
 npm run dev
 ```
+
+Dos detalles de esos merges, porque los dos rompen si se hacen mal:
+
+- **Uno por uno.** `git merge A B C` es un merge de tres ramas a la vez y se
+  cancela entero en cuanto encuentra un conflicto. El T031 dice que
+  `package.json` va a conflictuar, así que ese comando fallaría siempre.
+- **Con `origin/`.** Sergio no tiene las tres ramas en local, solo `main`. Por
+  eso el `git fetch origin` primero y el `origin/` delante del nombre.
+
+El único conflicto esperado es en `package.json`, donde cada rama agregó sus
+dependencias. Se resuelve dejando las de todas.
 
 ---
 
@@ -172,6 +211,34 @@ La descripción larga de cada ticket, con las rutas de archivo exactas, está en
 ---
 
 ## Guion de la presentación
+
+El guion largo, con los tiempos minuto a minuto y los 49 comandos en orden,
+está en `GUION-PRESENTACION.pdf`. Esto es el resumen.
+
+### Dos carpetas, no una
+
+El día de la presentación cada uno necesita **dos** carpetas, no una:
+
+| Carpeta | Qué tiene | Para qué |
+|---|---|---|
+| El repo real | Las cinco fases construidas y el `.env.local` puesto | El `npm run dev` del final: la app funcionando de verdad |
+| `demo-speckit` | El estado del tag `fase-1` | Lanzar los comandos en vivo: los agentes arrancan de verdad y las ramas no chocan |
+
+Sin la segunda, `git checkout -b 001-frontend` falla en vivo con
+`fatal: a branch named '001-frontend' already exists`, porque esa rama ya existe
+del pre-build. Cada uno arma la suya antes de empezar:
+
+```bash
+git clone https://github.com/sjunka/speckit-ai-generator.git demo-speckit
+cd demo-speckit
+git checkout fase-1
+npm install
+bash .specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks
+```
+
+Tiene que imprimir una línea con `FEATURE_DIR`. Deja Claude Code abierto ahí.
+
+### Los momentos
 
 | # | Quién | Qué hace | Qué mostrar |
 |---|---|---|---|
