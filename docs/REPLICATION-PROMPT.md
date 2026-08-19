@@ -203,6 +203,9 @@ Higgsfield, `https://platform.higgsfield.ai`, header
 - `POST /{model}` returns `{ request_id }`.
 - `GET /requests/{request_id}/status` returns `{ status, images?, video? }`.
   `queued` and `in_progress` mean pending; `completed` means done.
+- **The assets are wrapped in objects, not plain strings** — `images` is
+  `[{ url }]` and `video` is `{ url }`, so it is `status.images[0].url` and
+  `status.video.url` (trap 21). Verified against the live API.
 - Image model `higgsfield-ai/soul/reference` — it takes `image_reference_url`.
   The `soul/standard` model is text-to-image and **silently drops the photo**.
 - Video models `higgsfield-ai/dop/{lite,standard,turbo}`. Quality is a model
@@ -214,6 +217,13 @@ Higgsfield, `https://platform.higgsfield.ai`, header
   storage before generation, and the generated image goes to blob storage after.
 - Image generation polls inline, every 2s, up to 60 attempts, and returns the
   bytes. Video generation returns a job id and is polled by the client.
+- **The poll throws when the attempts run out** (`Image provider timed out`),
+  and the URL it read is checked before use (`Image provider returned no
+  image`). Both throws are load-bearing — without them a timeout surfaces as a
+  `fetch(undefined)` crash blaming the URL (trap 22).
+- Measured against the live API: an image sits `queued` up to ~45s before it
+  starts; two real runs landed at 59s and 115s; a video takes ~4-5 minutes.
+  60 attempts is 120s, so the headroom is seconds, not minutes (trap 23).
 
 ## 6. Design system
 
@@ -758,6 +768,29 @@ Things that cost time the first time round. Read before starting.
 20. **Testing Library gives `<video>` no implicit ARIA role**, so
     `getByRole("video")` never matches. Use `data-testid="video-player"` (or
     similar) on the element instead.
+21. **Higgsfield wraps its assets in objects.** `status.images` is
+    `[{ url: "https://..." }]` and `status.video` is `{ url: "https://..." }`,
+    never a bare string. Reading `status.images[0]` gives you an object, and
+    passing it to `fetch` fails far from the real cause. Use
+    `status.images?.[0]?.url` and `status.video?.url`. Whatever stands in for
+    the provider in the Fase 3 route tests has to answer with the same wrapped
+    shape, or the suite goes green against a provider that does not exist —
+    which is exactly how this one reached a real key before it was caught.
+22. **The inline image poll has to throw when it runs out of attempts.** The
+    natural loop — poll, `break` on `completed`, read `images` after — falls
+    through with `images` undefined when nothing completed in time, and
+    `fetch(undefined)` blows up somewhere else entirely; the 500 the user sees
+    names a URL problem instead of a timeout. This cost a live debugging
+    session. `throw new Error("Image provider timed out")` on exhaustion, and
+    `throw new Error("Image provider returned no image")` when the URL is
+    missing. The appendix does both — copy it.
+23. **60 attempts × 2s = 120s, and that is tight.** Real runs measured 59s and
+    115s end to end, most of it sitting in a shared provider queue. The budget
+    is what the appendix ships and what T038's empty diff requires, so do not
+    change it to make a demo run comfortable. If it does bite on the day,
+    raising the attempt count is a deliberate change — and on Vercel it needs
+    `export const maxDuration` raised on `app/api/image/route.js` to match,
+    with the deployment plan's own ceiling (Hobby caps low) as the real limit.
 
 ## 11. Definition of done
 
