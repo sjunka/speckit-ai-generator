@@ -742,6 +742,16 @@ Things that cost time the first time round. Read before starting.
     `<button className={own} {...props}>` loses every one of its own classes
     the moment a caller passes a `className`. React does not warn; the button
     simply renders as unstyled text. Destructure `className` and append it.
+17. **`params` on a dynamic route is a Promise, even in a client component,**
+    under Next 16 / React 19. `use(params)` is the documented way to unwrap
+    it, but it suspends the render — without a `<Suspense>` boundary around
+    the page it renders nothing. Resolve it with
+    `useEffect` + `Promise.resolve(params).then(setJobId)` instead and gate
+    anything that needs it (polling, fetches) on that state being set.
+18. **`react-hooks/set-state-in-effect` rejects a synchronous `setState` in an
+    effect body**, including the natural way to reset a counter. Move the
+    reset into that same effect's cleanup function (`return () => { ...;
+    setSeconds(0); }`) — that pattern is accepted by the rule.
 
 ## 11. Definition of done
 

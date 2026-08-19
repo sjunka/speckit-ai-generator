@@ -78,6 +78,15 @@ Pinned before anything is written. These are what let three tasks run in
 parallel: a task writes against the signature, the file it calls arrives later
 on another branch, they meet at the merge.
 
+Until the owning phase lands, "mock it" means writing a physical stub file at
+the exact path in the signature below (comment it `// stub, Phase N replaces
+this`), not just an in-memory `vi.mock`. Vitest resolves ES imports against
+the real filesystem before `vi.mock` ever runs, so a mock for a path that
+doesn't exist on disk fails with "Failed to resolve import" — the module has
+to exist before it can be mocked. Fase 5's merge (T031 in tasks.md) expects
+these stub files to collide with the real implementation and keeps the real
+one.
+
 ### Modules
 
 ```js

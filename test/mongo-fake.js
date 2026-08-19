@@ -4,9 +4,7 @@ export class FakeCollection {
   }
 
   async findOne(filter) {
-    return this.docs.find((doc) => {
-      return Object.entries(filter).every(([key, val]) => doc[key] === val);
-    });
+    return this.docs.find((doc) => matches(doc, filter));
   }
 
   async insertOne(doc) {
@@ -25,8 +23,17 @@ export class FakeCollection {
   }
 
   async countDocuments(filter = {}) {
-    return this.docs.filter((doc) => {
-      return Object.entries(filter).every(([key, val]) => doc[key] === val);
-    }).length;
+    return this.docs.filter((doc) => matches(doc, filter)).length;
   }
+}
+
+// Exact match on each key, except a `{ $gte: value }` operand, which does a
+// range comparison. Covers "generations today" style date-range counts.
+function matches(doc, filter) {
+  return Object.entries(filter).every(([key, val]) => {
+    if (val && typeof val === "object" && "$gte" in val) {
+      return doc[key] >= val.$gte;
+    }
+    return doc[key] === val;
+  });
 }
