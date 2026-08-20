@@ -13,6 +13,36 @@ reglas del proyecto, qué hace la app, cómo se construye, y los 39 tickets.
 **La fase 1 ya se corrió.** T001–T009 están construidos y en `main`, con 72
 pruebas en verde, lint y build pasando. Faltan las fases 2, 3, 4 y 5.
 
+## Las reglas del Demo Day cambiaron: no se construye en vivo
+
+El profesor publicó las indicaciones. Lo que califica es **evolucionar un
+producto que ya funciona**, no construir uno delante de él:
+
+- Hay que llegar el sábado con la app **desplegada** y con al menos un flujo
+  completo Frontend → API → base de datos → API → Frontend. Datos solo en
+  memoria, frontend con datos simulados o APIs que el frontend no consume
+  **no cuentan**.
+- En vivo dicta dos Historias de Usuario nuevas. Cada integrante corre el ciclo
+  completo **en su propia máquina**: Historia → Spec → Plan → Tasks →
+  Implementación → Pruebas → Commit, cada uno en su rama `feature/…`.
+- Va a preguntar, textual: *«¿qué parte del Spec produjo esta implementación?»*
+  y *«¿qué criterio de aceptación demuestra esta prueba?»*.
+
+**Entonces las fases 2, 3, 4 y 5 son tarea de esta semana, no de la
+presentación.** Fecha límite: **viernes**, para dejar el sábado libre. Todo lo
+que sigue en este README es ese trabajo previo.
+
+El sábado se sigue [`docs/DIA-D.pdf`](docs/DIA-D.pdf) — es la única hoja que
+hay que llevar impresa, y trae la lista de lo que debe estar cierto antes de
+entrar al salón.
+
+Dos cosas cambian de orden respecto al plan original:
+
+| Qué | Por qué |
+|---|---|
+| **El T030 va primero, no último** | Son las ocho llaves reales. Sin ellas nadie puede comprobar que su fase funciona de verdad, solo que sus pruebas pasan contra dobles. Tomás las saca apenas la fase 1 esté en su máquina, y las pone también en *Project Settings → Environment Variables* de Vercel |
+| **El T039 (desplegar) es requisito, no cierre** | «Funciona en mi máquina» no cumple la regla 1. La app tiene que estar en una URL pública, y `npm run smoke https://…vercel.app` tiene que salir en verde |
+
 ## Pruébalo en local antes de la presentación
 
 Toma diez minutos y sirve para llegar sabiendo cómo se siente. **Hazlo en una
@@ -79,7 +109,7 @@ Dos puntos marcados en la historia. Los dos importan y hacen cosas distintas.
 | Tag | Qué es | Para qué |
 |---|---|---|
 | `pre-fase-1` | El repo sin código, solo las specs | La práctica de arriba: `/speckit-implement T001` tiene trabajo que hacer |
-| `fase-1` | La fase 1 construida, antes de las otras tres | La carpeta de demo del día de la presentación |
+| `fase-1` | La fase 1 construida, antes de las otras tres | Punto de partida limpio si alguien tiene que rehacer su fase desde cero |
 
 ## Los tres errores que rompen todo
 
@@ -146,9 +176,20 @@ git merge origin/001-dashboard
 
 /speckit-implement fase 5
 npm test
+npm run build
 git add -A && git commit -m "Fase 5 - integracion" && git push origin main
-npm run dev
+
+# El T039: Vercel construye solo con el push. Las ocho variables van en
+# Project Settings -> Environment Variables antes del primer deploy.
+# Cuando el deploy este en verde, contra la URL publica y no contra localhost:
+npm run smoke https://TU-APP.vercel.app
 ```
+
+Ese `npm run smoke` es el último eslabón de la cadena que pide el profesor —
+*branches → integración → tests → build → deploy → smoke test*. Comprueba tres
+capas contra el despliegue real: que la portada responde, que `/capture` exige
+sesión, y que `/api/image` rechaza al anónimo. Si las tres pasan, el flujo
+Frontend → API → base de datos está vivo en una URL pública.
 
 Dos detalles de esos merges, porque los dos rompen si se hacen mal:
 
@@ -330,10 +371,17 @@ La descripción larga de cada ticket, con las rutas de archivo exactas, está en
 
 ## Guion de la presentación
 
+> **Esta sección describe el formato anterior**, en el que las fases 2 a 5 se
+> construían en vivo. Con las indicaciones nuevas del profesor eso ya no aplica:
+> el sábado se evoluciona un producto que ya funciona. La hoja vigente es
+> [`docs/DIA-D.pdf`](docs/DIA-D.pdf). Lo de abajo se queda como material de
+> respaldo — la narrativa, las frases y la lista de comandos siguen sirviendo
+> para el trabajo previo de esta semana.
+
 El guion largo, con los tiempos minuto a minuto y los 51 comandos en orden,
 está en [`docs/GUION-PRESENTACION.pdf`](docs/GUION-PRESENTACION.pdf). Esto es el
-resumen. Para regenerarlo después de editar el `.html` de al lado:
-`node scripts/build-guion-pdf.mjs`.
+resumen. Para regenerar cualquiera de los dos después de editar su `.html`:
+`node scripts/build-guion-pdf.mjs` y `node scripts/build-guion-pdf.mjs DIA-D`.
 
 ### Dos carpetas, no una
 

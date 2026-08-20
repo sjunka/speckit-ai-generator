@@ -12,7 +12,9 @@
   .sub { color:var(--dim); font-size:8.2pt; margin:0.7mm 0 2.6mm; }
 
   h2 { font-size:9.4pt; margin:0 0 1.2mm; padding-bottom:0.6mm; border-bottom:1.8pt solid var(--ink); }
+  .newpage { page-break-before:always; }
   .step { margin:0 0 2.6mm; page-break-inside:avoid; }
+  .step.long { page-break-inside:auto; }
   .step h3 { font-size:9.4pt; margin:0 0 1.2mm; display:flex; align-items:baseline; gap:2mm; }
   .num {
     background:var(--ink); color:#fff; font-size:7.4pt; font-weight:700;
@@ -45,10 +47,17 @@
 
   strong.red { color:var(--red); }
 
-  table { border-collapse:collapse; width:100%; font-size:8pt; }
+  table { border-collapse:collapse; width:100%; font-size:8pt; margin-bottom:1.5mm; }
   th, td { border:0.8pt solid var(--line); padding:0.7mm 1.5mm; text-align:left; vertical-align:top; }
   th { background:var(--soft); font-size:7.6pt; }
   td:first-child { font-weight:700; white-space:nowrap; }
+
+  .gate td:first-child { white-space:normal; font-weight:400; }
+  .gate td.box { width:5mm; text-align:center; font-weight:700; }
+  .gate td.own { width:22mm; font-weight:700; color:var(--blue); white-space:nowrap; }
+
+  .qa td:first-child { white-space:normal; width:52mm; font-style:italic; font-weight:400; }
+  .qa td.own { width:20mm; font-weight:700; color:var(--blue); white-space:nowrap; }
 
   .tree { margin:0 0 1.5mm; }
   .tree td { border:0; border-top:0.8pt solid var(--line); padding:1.1mm 2mm 1.1mm 0; font-size:8.2pt; }
@@ -57,18 +66,42 @@
   .tree .ex { color:var(--dim); font-size:7.6pt; }
 
   .rules { background:var(--soft); border:0.8pt solid var(--line); border-radius:3px; padding:1.8mm 2.5mm 1.8mm 0; }
+  .alert { border:1.2pt solid var(--red); border-radius:3px; padding:1.8mm 2.5mm; margin:0 0 2.5mm; }
+  .alert h3 { color:var(--red); font-size:9pt; margin:0 0 1mm; }
   .split { display:flex; gap:4mm; align-items:flex-start; }
   .split > * { flex:1; }
 </style>
 
 <h1>Día D — sábado, instrucciones en caliente</h1>
 <p class="sub">
-  La línea base ya está construida, probada y desplegada. Esta hoja cubre solo lo que pasa
-  <strong>en vivo</strong>, cuando el profesor dicte las dos Historias de Usuario nuevas.
+  El profesor calificará <strong>evolución de un producto que ya funciona</strong>, no una app construida en vivo.
+  Esta hoja cubre las dos cosas que decide la nota: la <strong>línea base desplegada</strong> que hay que tener antes,
+  y los <strong>10 minutos en vivo</strong> cuando dicte las dos Historias de Usuario nuevas.
   Los comandos se copian tal cual; lo <span class="fill">resaltado</span> es lo único que se cambia.
 </p>
 
-<h2>Antes de que empiece la clase — los cinco</h2>
+<div class="alert">
+  <h3>Sin esto no hay nota, y no se puede improvisar el sábado</h3>
+  <p>La regla 1 del profesor: <em>«al menos un flujo funcional completo Frontend → Backend/API → Base de Datos → Backend → Frontend»</em>, desplegado. Y descalifica explícitamente <em>frontend con datos simulados</em>, <em>APIs no consumidas desde el frontend</em> y <em>datos solo en memoria</em>. Hoy el repo tiene la fase 1: el cascarón, los mocks y 72 pruebas. <strong class="red">Las rutas de API, la base de datos y el despliegue todavía no existen.</strong> Las fases 2 a 5 son trabajo de <strong>antes</strong> del sábado, no del Día D.</p>
+</div>
+
+<h2>La línea base — cerrada el viernes, no el sábado</h2>
+<table class="gate">
+  <tr><th class="box">✓</th><th class="own">Quién</th><th>Qué tiene que estar cierto</th></tr>
+  <tr><td class="box">☐</td><td class="own">Mateo</td><td><code>fase 2</code> mergeada en <code>main</code> — las pantallas, hablando por <code>fetch</code>.</td></tr>
+  <tr><td class="box">☐</td><td class="own">Johan</td><td><code>fase 3</code> mergeada — <code>lib/db.js</code>, <code>lib/higgsfield.js</code> y las cuatro rutas bajo <code>app/api/</code>.</td></tr>
+  <tr><td class="box">☐</td><td class="own">Tomás</td><td><strong class="red">T030 primero, no último.</strong> Las ocho llaves reales (Clerk, MongoDB Atlas, Vercel Blob, Higgsfield) en su <code>.env.local</code> <em>y</em> en <em>Project Settings → Environment Variables</em> de Vercel. Sin esto lo demás no se puede probar de verdad.</td></tr>
+  <tr><td class="box">☐</td><td class="own">Santiago</td><td><code>fase 5</code>: merge, <code>npm test</code>, <code>npm run build</code> y <strong>T039 — desplegar en Vercel</strong>. La URL pública escrita aquí: <span class="fill">https://______________________.vercel.app</span></td></tr>
+  <tr><td class="box">☐</td><td class="own">Santiago</td><td><code>npm run smoke <span class="fill">https://…vercel.app</span></code> en verde. Prueba las tres capas contra el despliegue real, no contra <code>localhost</code>.</td></tr>
+  <tr><td class="box">☐</td><td class="own">Todos</td><td>El recorrido a mano en el celular, sobre la URL pública: entrar → foto → imagen → video → descargar. Eso es el «flujo completo» que pide la regla 1.</td></tr>
+</table>
+<p class="note">
+  Si el viernes falta algo, se recorta alcance, no calidad: la regla 9 del profesor dice que
+  <em>una funcionalidad pequeña completamente integrada vale más que una enorme que no funciona</em>.
+  El mínimo que cumple la regla 1 son las fases 2 y 3 con llaves reales y desplegadas — el dashboard (fase 4) puede quedar para después.
+</p>
+
+<h2 style="margin-top:3mm">20 minutos antes de que empiece la clase — los cinco</h2>
 <div class="split">
   <div>
     <p>Cada uno, en su máquina, dentro de la carpeta <code>speckit-ai-generator</code>:</p>
@@ -76,145 +109,200 @@
 git pull origin main
 npm install
 npm test</pre>
+    <p class="note">
+      Tiene que decir <code>0 failed</code>. Si sale rojo, avisa al grupo <strong>ahora</strong>.
+      Deja tu agente abierto en esa carpeta. Nadie usa carpeta de demo: se trabaja sobre el repo real.
+    </p>
   </div>
   <div>
-    <p class="note" style="margin-top:4mm">
-      Tiene que decir <code>72 passed</code> o más y <code>0 failed</code>. Si sale rojo, avisa al grupo
-      <strong>ahora</strong>. Deja tu agente abierto en esa carpeta.
-    </p>
     <ul>
+      <li><span class="who">Santiago</span> — <code>npm run smoke <span class="fill">https://…vercel.app</span></code> y abre la URL en el celular. Deja el panel de Vercel abierto en una pestaña.</li>
       <li><span class="who">Tomás</span> — confirma que su <code>.env.local</code> con las ocho llaves sigue en su máquina.</li>
-      <li><span class="who">Santiago</span> — abre <span class="fill">https://__________.vercel.app</span> en el celular y comprueba que carga.</li>
+      <li><span class="who">Sergio</span> — abre <code>spec.md</code> y <code>tasks.md</code> en pantalla, listos para proyectar.</li>
       <li><span class="who">Todos</span> — hotspot del celular encendido, por si falla el wifi del salón.</li>
+      <li><span class="who">Todos</span> — <code>git log --graph --oneline -15</code> a mano: el grafo de ramas es la prueba visual de «una historia, una rama».</li>
     </ul>
   </div>
 </div>
 
-<h2 style="margin-top:3mm">La secuencia en vivo — 10 minutos</h2>
+<h2 class="newpage">La secuencia en vivo — 10 minutos</h2>
+<p class="sub" style="margin-top:0.8mm">
+  Cada quien corre el ciclo completo en <strong>su propia máquina</strong> y sobre <strong>su propio archivo de spec</strong>:
+  Historia → Spec → Plan → Tasks → Implementación → Pruebas → Commit. Nadie mira a otro operar la IA.
+</p>
 
 <div class="step">
-  <h3><span class="num">1</span> <span class="who">Sergio</span> escribe la especificación <span class="when">≈ 3 min · rama <code>main</code></span></h3>
-  <p>Proyecta la pantalla. Primero deja la rama limpia, después pega los dos prompts en el agente, uno tras otro:</p>
+  <h3><span class="num">1</span> <span class="who">Sergio</span> registra la necesidad y reparte <span class="when">≈ 2 min · rama <code>main</code></span></h3>
+  <p>Proyecta la pantalla. Deja la rama limpia y pega el prompt con las historias literales que dictó el profesor:</p>
   <pre>git checkout main
 git pull origin main</pre>
-  <pre class="prompt">/speckit-specify Agrega dos User Stories nuevas al final de specs/001-ai-media-generator/spec.md.
-HU 1: "<span class="fill">historia literal que dictó el profesor</span>"
-HU 2: "<span class="fill">segunda historia literal</span>"
+  <pre class="prompt">/speckit-specify Agrega dos User Stories nuevas al final de la seccion User Scenarios de
+specs/001-ai-media-generator/spec.md, numeradas User Story 5 y User Story 6.
+HU 5: "<span class="fill">historia literal que dictó el profesor</span>"
+HU 6: "<span class="fill">segunda historia literal</span>"
+Cada una con sus Acceptance Scenarios numerados en formato Given/When/Then.
 NO crees una feature nueva. NO corras create-new-feature.sh. NO cambies de rama.
-Solo edita ese spec.md que ya existe.</pre>
-  <pre class="prompt">/speckit-tasks Agrega al final de specs/001-ai-media-generator/tasks.md SOLO los tickets de
-las dos User Stories que acabo de agregar. Numeralos T040, T041 y T042.
-Exactamente tres tickets, ni uno mas.
-Cada ticket con su lista Owns, y las tres listas sin ningun archivo en comun entre ellas.
-NO regeneres ni renumeres los 39 tickets que ya estan.</pre>
-  <p>Sube spec y tickets para que los demás los bajen:</p>
-  <pre>git add -A
-git commit -m "HU en vivo: spec y tickets T040-T042"
+NO toques plan.md ni tasks.md. Solo edita ese spec.md que ya existe.</pre>
+  <pre>git add specs/001-ai-media-generator/spec.md
+git commit -m "HU en vivo: User Stories 5 y 6 dictadas en clase"
 git push origin main</pre>
-  <p><strong>Cómo repartir.</strong> Mira las listas <code>Owns</code> que acaba de escribir el agente. La regla es
+  <p class="note">Ese commit, con la hora de hoy, es la prueba de que la necesidad entró en vivo. Es el primer eslabón de la trazabilidad.</p>
+  <p><strong>Cómo repartir.</strong> Mira los Acceptance Scenarios y decide qué archivos toca cada uno. La regla es
     <strong>un archivo, un dueño</strong> — nunca dos personas sobre el mismo archivo:</p>
   <table class="tree">
     <tr>
       <td>Toca archivos <strong>nuevos</strong><br><span class="ex">pantalla o ruta que no existe todavía</span></td>
-      <td><span class="who">Mateo → T040</span>, <span class="who">Johan → T041</span>, <span class="who">Tomás → T042</span>. Los tres en paralelo.</td>
+      <td>Los tres en paralelo: <span class="who">Mateo</span> la pantalla, <span class="who">Johan</span> la ruta de API, <span class="who">Tomás</span> la consulta o el reporte.</td>
     </tr>
     <tr>
       <td>Toca una <strong>pantalla existente + una ruta de API</strong><br><span class="ex">son archivos distintos, se reparte solo</span></td>
       <td>Dos personas: una la pantalla (<code>app/…/page.jsx</code>), otra la ruta (<code>app/api/…</code>).</td>
     </tr>
     <tr>
-      <td>Toca <strong>un solo archivo</strong><br><span class="ex">o dos listas Owns comparten un archivo</span></td>
-      <td><strong class="red">Una sola persona</strong> hace esa HU completa. Los otros toman la segunda HU.</td>
+      <td>Toca <strong>un solo archivo</strong><br><span class="ex">no hay forma de partirlo sin que dos lo editen</span></td>
+      <td><strong class="red">Una sola persona</strong> hace esa HU completa. Los otros toman la otra HU.</td>
     </tr>
   </table>
-  <p class="note">
-    Di el reparto en voz alta antes de que nadie arranque. Si sobran tickets,
-    <span class="who">Santiago</span> toma uno con el mismo bloque del paso 2 y hace el merge después.
+  <p>
+    <strong>Di en voz alta tres cosas antes de que nadie arranque:</strong> qué le toca a cada uno, qué archivos son suyos,
+    y <strong>el nombre de su rama</strong> — una palabra que describa la funcionalidad, no la persona:
+    <code>feature/<span class="fill">categorias</span></code>, <code>feature/<span class="fill">exportar</span></code>, <code>feature/<span class="fill">auditoria</span></code>.
+    Si sobra trabajo, <span class="who">Santiago</span> toma una parte con el mismo bloque del paso 2 y hace el merge después.
   </p>
 </div>
 
-<div class="step">
-  <h3><span class="num">2</span> <span class="who">Mateo, Johan y Tomás</span> construyen, los tres a la vez <span class="when">≈ 5 min</span></h3>
-  <p>Cada uno copia <strong>su</strong> columna. Son idénticas salvo el número del ticket.</p>
+<div class="step long">
+  <h3><span class="num">2</span> <span class="who">Mateo, Johan y Tomás</span> corren el ciclo completo, cada uno en su máquina <span class="when">≈ 6 min</span></h3>
+  <p><strong>2.1 — Tu rama.</strong> Cada uno con el nombre que dijo Sergio:</p>
   <div class="three">
     <pre><span class="name">MATEO</span>git checkout main
 git pull origin main
-git checkout -b hu-viva-t040
-<span class="cmt"># en el agente:</span>
-/speckit-implement T040
-npm test
-git add -A
-git commit -m "T040 HU en vivo"
-git push -u origin hu-viva-t040</pre>
+git checkout -b feature/<span class="fill">___</span></pre>
     <pre><span class="name">JOHAN</span>git checkout main
 git pull origin main
-git checkout -b hu-viva-t041
-<span class="cmt"># en el agente:</span>
-/speckit-implement T041
-npm test
-git add -A
-git commit -m "T041 HU en vivo"
-git push -u origin hu-viva-t041</pre>
+git checkout -b feature/<span class="fill">___</span></pre>
     <pre><span class="name">TOMÁS</span>git checkout main
 git pull origin main
-git checkout -b hu-viva-t042
-<span class="cmt"># en el agente:</span>
-/speckit-implement T042
-npm test
-git add -A
-git commit -m "T042 HU en vivo"
-git push -u origin hu-viva-t042</pre>
+git checkout -b feature/<span class="fill">___</span></pre>
   </div>
+  <p><strong>2.2 — Tu Spec, tu Plan y tus Tasks.</strong> Pégale esto a tu agente. Escribe <strong>tu nombre</strong> en la ruta: un archivo por persona, así dos specs nunca chocan.</p>
+  <pre class="prompt">Escribe specs/001-ai-media-generator/hu-viva/<span class="fill">tu-nombre</span>.md, y solo ese archivo.
+
+Historia: "<span class="fill">la parte de la HU que me tocó, literal</span>"
+
+El archivo lleva cuatro secciones:
+1. Historia — la frase de arriba, textual.
+2. Criterios de Aceptacion — numerados CA-1, CA-2, CA-3, en formato Dado / Cuando / Entonces.
+3. Plan — la lista exacta de archivos que vas a crear o modificar, y por que cada uno.
+4. Tasks — numeradas, y cada una dice que CA cubre.
+
+Reglas: no toques spec.md, plan.md ni tasks.md. Si para cumplir la Historia necesitas
+modificar un archivo que ya existe y no esta en tu Plan, parate y dimelo antes de escribir.
+Persistencia real: si la Historia guarda datos, van a MongoDB por lib/db.js, nunca en memoria.</pre>
+  <p><strong>2.3 — Implementa, test-first.</strong> Lee el Plan en voz alta antes de lanzar esto — es tu último filtro contra un archivo que sea de otro:</p>
+  <pre class="prompt">Implementa specs/001-ai-media-generator/hu-viva/<span class="fill">tu-nombre</span>.md, test-first:
+por cada Criterio de Aceptacion, primero la prueba que falla y despues el codigo que la pasa.
+
+Nombra cada prueba empezando por su criterio: it("CA-2: ...").
+Toca unicamente los archivos de la seccion Plan de ese documento. Ninguno mas.
+Al terminar corre npm test y dejalo en verde.</pre>
+  <p class="note">Ese <code>it("CA-2: …")</code> no es cosmético: es la respuesta literal cuando el profesor pregunte <em>«¿qué criterio de aceptación demuestra esta prueba?»</em>.</p>
+  <p><strong>2.4 — Pruebas, commit y push.</strong> El <code>npm test</code> lo corres tú, con tus ojos, antes de que la rama salga de tu máquina:</p>
+  <pre>npm test
+git add -A
+git commit -m "feat: <span class="fill">la historia en cinco palabras</span> (CA-1 a CA-<span class="fill">N</span>)"
+git push -u origin feature/<span class="fill">___</span></pre>
   <p>
     <strong class="red">Si <code>npm test</code> sale rojo, no hagas push.</strong>
-    Dilo en voz alta y pídele al agente: <em>«la prueba X está fallando, arréglala y vuelve a correr
+    Dilo en voz alta y pídele al agente: <em>«la prueba CA-2 está fallando, arréglala y vuelve a correr
     <code>npm test</code>»</em>. Que el método atrape el error delante del profesor juega a favor.
-    Cuando tu <code>git push</code> termine, anúncialo: <em>«T040 arriba»</em> —
+    Cuando tu <code>git push</code> termine, anúncialo: <em>«<span class="fill">categorías</span> arriba, tres pruebas en verde»</em> —
     <span class="who">Santiago</span> no arranca hasta oír los tres.
   </p>
 </div>
 
 <div class="step">
-  <h3><span class="num">3</span> <span class="who">Santiago</span> junta las ramas y despliega <span class="when">≈ 2 min · rama <code>main</code></span></h3>
+  <h3><span class="num">3</span> <span class="who">Santiago</span> integra, prueba, construye y despliega <span class="when">≈ 2 min · rama <code>main</code></span></h3>
   <div class="split">
     <div>
       <p>Solo cuando los tres hayan dicho que subieron:</p>
       <pre>git checkout main
 git pull origin main
 git fetch origin</pre>
-      <p><strong>Un merge por línea.</strong> Espera a que termine cada uno antes de escribir el siguiente:</p>
-      <pre>git merge origin/hu-viva-t040
-git merge origin/hu-viva-t041
-git merge origin/hu-viva-t042</pre>
+      <p><strong>Un merge por línea</strong>, y con <code>--no-ff</code> para que cada historia quede como una rama visible en el grafo. Espera a que termine cada uno antes de escribir el siguiente:</p>
+      <pre>git merge --no-ff origin/feature/<span class="fill">___</span>
+git merge --no-ff origin/feature/<span class="fill">___</span>
+git merge --no-ff origin/feature/<span class="fill">___</span></pre>
     </div>
     <div>
-      <p>Con los tres adentro, prueba y sube:</p>
+      <p>Con los tres adentro, la cadena completa antes de subir:</p>
       <pre>npm test
+npm run build
 git push origin main</pre>
       <p class="note">
-        Ese push a <code>main</code> dispara el despliegue en Vercel por sí solo.
-        Nadie corre un comando de deploy.
+        Ese push a <code>main</code> dispara el despliegue en Vercel por sí solo, y CI vuelve a correr
+        lint, pruebas y build sobre el merge. Nadie corre un comando de deploy a mano.
       </p>
+      <p>Mientras Vercel construye, proyecta el grafo — es la respuesta visual a «¿cómo evitan los conflictos?»:</p>
+      <pre>git log --graph --oneline -15</pre>
     </div>
   </div>
 </div>
 
 <div class="step">
-  <h3><span class="num">4</span> <span class="who">Todos</span> muestran la app funcionando <span class="when">≈ 1 min</span></h3>
+  <h3><span class="num">4</span> <span class="who">Todos</span> validan sobre el despliegue, no sobre localhost <span class="when">≈ 1 min</span></h3>
   <ol>
     <li><span class="who">Santiago</span> proyecta el panel de Vercel y espera el check verde del deploy (1–2 min).</li>
-    <li>Con el deploy en verde, abre <span class="fill">https://__________.vercel.app</span> en el celular.</li>
-    <li>Recorre la Historia nueva de punta a punta, en el celular, delante del profesor.</li>
+    <li>Con el deploy en verde: <code>npm run smoke <span class="fill">https://…vercel.app</span></code> — tres capas comprobadas en dos segundos, delante del profesor.</li>
+    <li>Abre <span class="fill">https://______________________.vercel.app</span> en el celular y recorre la Historia nueva de punta a punta.</li>
   </ol>
   <p class="note">
     Si el deploy todavía no termina, <span class="who">Santiago</span> corre <code>npm run dev</code> y muestra la app
-    en <code>http://localhost:3000</code> mientras tanto: es su máquina la que tiene las llaves reales.
+    en <code>http://localhost:3000</code> mientras tanto — pero <strong>vuelve a la URL pública</strong> apenas el deploy esté verde:
+    la regla 1 pide despliegue, y una demo que solo corre en local no cuenta.
   </p>
 </div>
 
+<h2 class="newpage">Trazabilidad — lo que va a preguntar, y quién contesta</h2>
+<p class="sub" style="margin-top:0.8mm">
+  El profesor anunció dos preguntas textuales. Estas son las respuestas, con el archivo que hay que abrir en pantalla.
+  Cada uno contesta por lo suyo; nadie responde por otro.
+</p>
+<table class="qa">
+  <tr><th>Pregunta</th><th class="own">Contesta</th><th>Qué abre y qué dice</th></tr>
+  <tr>
+    <td>«¿Qué parte del Spec produjo esta implementación?»</td><td class="own">El dueño</td>
+    <td>Abre <code>specs/001-ai-media-generator/hu-viva/<span class="fill">tu-nombre</span>.md</code>. Señala el <strong>CA-N</strong>, la <strong>Task</strong> que lo cubre y el archivo que la Task nombra en el Plan. Los tres están en la misma pantalla.</td>
+  </tr>
+  <tr>
+    <td>«¿Qué criterio de aceptación demuestra esta prueba?»</td><td class="own">El dueño</td>
+    <td>El nombre de la prueba lo dice. Demuéstralo corriendo solo ese criterio:<br><code>npm test -- -t "CA-2"</code></td>
+  </tr>
+  <tr>
+    <td>«¿Dónde está la necesidad original?»</td><td class="own">Sergio</td>
+    <td><code>spec.md</code>, User Stories 5 y 6 — las que usted dictó. Y el commit que las metió, con la hora de hoy: <code>git log -1 --format='%h %cd %s' -- specs/001-ai-media-generator/spec.md</code></td>
+  </tr>
+  <tr>
+    <td>«¿Y esto no lo tenían hecho de antes?»</td><td class="own">Sergio</td>
+    <td><code>git log --graph --oneline -15</code>. El commit de la HU y los tres <code>feature/…</code> tienen la hora de hoy; todo lo anterior es de la semana pasada, y está en GitHub con su fecha.</td>
+  </tr>
+  <tr>
+    <td>«¿Cómo evitan los conflictos?»</td><td class="own">Sergio</td>
+    <td>Cada spec declara sus archivos en la sección <strong>Plan</strong>, y ninguno aparece en dos. Lo que una parte necesita de otra la llama por la firma acordada en <code>plan.md</code>, sección <em>Contracts</em>. Por eso nadie espera a nadie.</td>
+  </tr>
+  <tr>
+    <td>«¿Dónde se guardan los datos?»</td><td class="own">Johan</td>
+    <td><code>lib/db.js</code> → MongoDB Atlas, colección <code>generations</code>. Nada en memoria. Lo prueba recargando la página en el celular: el dato sigue ahí.</td>
+  </tr>
+  <tr>
+    <td>«¿Esto está desplegado o corre en su máquina?»</td><td class="own">Santiago</td>
+    <td>El panel de Vercel con el deploy de hace dos minutos, y <code>npm run smoke</code> apuntando a la URL pública. El celular está sobre datos móviles, no sobre el wifi del salón.</td>
+  </tr>
+</table>
+
 <h2 style="margin-top:3mm">Si algo se rompe</h2>
 <table>
-  <tr><th style="width:33mm">Qué pasó</th><th style="width:30mm">Quién lo arregla</th><th>Qué hace, exactamente</th></tr>
+  <tr><th style="width:33mm">Qué pasó</th><th style="width:26mm">Quién lo arregla</th><th>Qué hace, exactamente</th></tr>
   <tr>
     <td>Conflicto en el merge</td><td>Santiago</td>
     <td>En <code>package.json</code>: dejar las dependencias de los dos lados. En cualquier <code>lib/*.js</code>: dejar la implementación real y borrar el stub. Después <code>git add -A</code> y <code>git commit</code>.</td>
@@ -224,33 +312,39 @@ git push origin main</pre>
     <td><code>git merge --abort</code> y volver a intentar solo con esa rama. No pierde nada de lo ya mergeado.</td>
   </tr>
   <tr>
-    <td>El agente toca archivos de otro</td><td>El dueño del ticket</td>
-    <td>Pararlo y decirle: <em>«revierte eso, solo puedes tocar los archivos de la lista Owns de mi ticket»</em>.</td>
+    <td>El agente toca archivos de otro</td><td>El dueño</td>
+    <td>Pararlo y decirle: <em>«revierte eso, solo puedes tocar los archivos de la sección Plan de mi spec»</em>.</td>
   </tr>
   <tr>
-    <td>El agente se pierde</td><td>Sergio</td>
+    <td>El agente se pierde o se contradice</td><td>Sergio</td>
     <td><code>/speckit-analyze</code> — no cambia nada, muestra qué se contradice entre spec, plan y tickets.</td>
   </tr>
   <tr>
     <td><code>npm test</code> en rojo</td><td>Quien lo corrió</td>
-    <td>No hacer push. Decirle al agente qué prueba falla y que la arregle. Volver a correr <code>npm test</code>.</td>
+    <td>No hacer push. Decirle al agente qué CA falla y que lo arregle. Volver a correr <code>npm test</code>.</td>
   </tr>
   <tr>
-    <td>Vercel lento o caído</td><td>Santiago</td>
-    <td><code>npm run dev</code> y demo en <code>http://localhost:3000</code>.</td>
+    <td><code>npm run build</code> en rojo tras el merge</td><td>Santiago</td>
+    <td>No hacer push a <code>main</code>: un build roto tumba el despliegue. Arreglar solo lo que rompió el merge, volver a construir.</td>
+  </tr>
+  <tr>
+    <td>El deploy de Vercel falla</td><td>Santiago</td>
+    <td>Abrir el log del deploy. Casi siempre es una variable de entorno faltante: se agrega en <em>Project Settings</em> y se hace <em>Redeploy</em>. Mientras tanto, <code>npm run dev</code>.</td>
   </tr>
   <tr>
     <td>Se cayó el wifi</td><td>Todos</td>
-    <td>Hotspot del celular. La app corre en local sin llaves ni internet gracias a los mocks del T008.</td>
+    <td>Hotspot del celular. Las pruebas corren sin llaves y sin internet gracias a los dobles del T008; el deploy y la demo sí necesitan red.</td>
   </tr>
 </table>
 
-<h2 style="margin-top:3mm">Las cuatro reglas que no se rompen</h2>
+<h2 style="margin-top:3mm">Las seis reglas que no se rompen</h2>
 <div class="rules">
   <ol>
-    <li>Es <code>/speckit-implement</code>, <strong>no</strong> <code>/implement</code>.</li>
-    <li>Nunca <code>/speckit-implement</code> a secas: sin el número del ticket construye los 42, los tuyos y los de todos.</li>
-    <li>Los merges van <strong>uno por uno</strong>. <code>git merge A B C</code> se cancela entero al primer conflicto.</li>
-    <li>Nadie hace <code>git push origin main</code> en vivo salvo <span class="who">Sergio</span> en el paso 1 y <span class="who">Santiago</span> en el paso 3. Los demás empujan solo a su rama <code>hu-viva-*</code>.</li>
+    <li>Es <code>/speckit-implement</code>, <strong>no</strong> <code>/implement</code>. Y nunca a secas: sin argumento el agente construye todo el backlog.</li>
+    <li><strong>Primero el spec, después el código.</strong> Código generado sin especificación previa no demuestra SDD y no cuenta — es la regla 6 del profesor.</li>
+    <li><strong>Una prueba por criterio de aceptación</strong>, nombrada con su <code>CA-N</code>, y escrita antes del código.</li>
+    <li>Nadie escribe fuera de la sección <strong>Plan</strong> de su propio spec. Un archivo, un dueño.</li>
+    <li>Los merges van <strong>uno por uno</strong> y con <code>--no-ff</code>. <code>git merge A B C</code> se cancela entero al primer conflicto.</li>
+    <li>Nadie hace <code>git push origin main</code> en vivo salvo <span class="who">Sergio</span> en el paso 1 y <span class="who">Santiago</span> en el paso 3. Los demás empujan solo a su rama <code>feature/…</code>.</li>
   </ol>
 </div>
