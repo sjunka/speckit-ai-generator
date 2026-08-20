@@ -6,13 +6,13 @@
     --blue:#0b5cad; --red:#b3261e; --green:#1c6b3a;
   }
   * { box-sizing:border-box; margin:0; }
-  body { font:8.6pt/1.38 -apple-system,'Segoe UI',Arial,sans-serif; color:var(--ink); }
+  body { font:8.4pt/1.32 -apple-system,'Segoe UI',Arial,sans-serif; color:var(--ink); }
 
   h1 { font-size:14pt; letter-spacing:-0.2pt; }
-  .sub { color:var(--dim); font-size:8.4pt; margin:0.8mm 0 3.5mm; }
+  .sub { color:var(--dim); font-size:8.2pt; margin:0.7mm 0 2.6mm; }
 
-  h2 { font-size:9.6pt; margin:0 0 1.5mm; padding-bottom:0.7mm; border-bottom:1.8pt solid var(--ink); }
-  .step { margin:0 0 3.5mm; page-break-inside:avoid; }
+  h2 { font-size:9.4pt; margin:0 0 1.2mm; padding-bottom:0.6mm; border-bottom:1.8pt solid var(--ink); }
+  .step { margin:0 0 2.6mm; page-break-inside:avoid; }
   .step h3 { font-size:9.4pt; margin:0 0 1.2mm; display:flex; align-items:baseline; gap:2mm; }
   .num {
     background:var(--ink); color:#fff; font-size:7.4pt; font-weight:700;
@@ -22,16 +22,16 @@
   .who { color:var(--blue); font-weight:700; }
   .when { color:var(--dim); font-weight:400; font-size:8pt; margin-left:auto; }
 
-  p { margin:0 0 1.2mm; }
+  p { margin:0 0 1mm; }
   .note { color:var(--dim); font-size:8pt; }
   ol, ul { padding-left:4.5mm; margin:0 0 1.2mm; }
   li { margin-bottom:0.5mm; }
 
   code { font:7.9pt/1.25 'SF Mono',Menlo,monospace; background:var(--soft); padding:0 0.7mm; border-radius:2px; }
   pre {
-    font:7.6pt/1.42 'SF Mono',Menlo,monospace;
+    font:7.5pt/1.36 'SF Mono',Menlo,monospace;
     background:var(--soft); border-left:2pt solid var(--blue);
-    padding:1.4mm 2mm; margin:0 0 1.5mm; border-radius:0 3px 3px 0;
+    padding:1.2mm 2mm; margin:0 0 1.2mm; border-radius:0 3px 3px 0;
     white-space:pre-wrap; word-break:break-word;
   }
   pre.prompt { border-left-color:var(--green); }
@@ -46,9 +46,15 @@
   strong.red { color:var(--red); }
 
   table { border-collapse:collapse; width:100%; font-size:8pt; }
-  th, td { border:0.8pt solid var(--line); padding:0.9mm 1.6mm; text-align:left; vertical-align:top; }
+  th, td { border:0.8pt solid var(--line); padding:0.7mm 1.5mm; text-align:left; vertical-align:top; }
   th { background:var(--soft); font-size:7.6pt; }
   td:first-child { font-weight:700; white-space:nowrap; }
+
+  .tree { margin:0 0 1.5mm; }
+  .tree td { border:0; border-top:0.8pt solid var(--line); padding:1.1mm 2mm 1.1mm 0; font-size:8.2pt; }
+  .tree tr:first-child td { border-top:0; }
+  .tree td:first-child { width:62mm; font-weight:400; white-space:normal; }
+  .tree .ex { color:var(--dim); font-size:7.6pt; }
 
   .rules { background:var(--soft); border:0.8pt solid var(--line); border-radius:3px; padding:1.8mm 2.5mm 1.8mm 0; }
   .split { display:flex; gap:4mm; align-items:flex-start; }
@@ -84,7 +90,7 @@ npm test</pre>
   </div>
 </div>
 
-<h2 style="margin-top:4mm">La secuencia en vivo — 10 minutos</h2>
+<h2 style="margin-top:3mm">La secuencia en vivo — 10 minutos</h2>
 
 <div class="step">
   <h3><span class="num">1</span> <span class="who">Sergio</span> escribe la especificación <span class="when">≈ 3 min · rama <code>main</code></span></h3>
@@ -105,10 +111,25 @@ NO regeneres ni renumeres los 39 tickets que ya estan.</pre>
   <pre>git add -A
 git commit -m "HU en vivo: spec y tickets T040-T042"
 git push origin main</pre>
+  <p><strong>Cómo repartir.</strong> Mira las listas <code>Owns</code> que acaba de escribir el agente. La regla es
+    <strong>un archivo, un dueño</strong> — nunca dos personas sobre el mismo archivo:</p>
+  <table class="tree">
+    <tr>
+      <td>Toca archivos <strong>nuevos</strong><br><span class="ex">pantalla o ruta que no existe todavía</span></td>
+      <td><span class="who">Mateo → T040</span>, <span class="who">Johan → T041</span>, <span class="who">Tomás → T042</span>. Los tres en paralelo.</td>
+    </tr>
+    <tr>
+      <td>Toca una <strong>pantalla existente + una ruta de API</strong><br><span class="ex">son archivos distintos, se reparte solo</span></td>
+      <td>Dos personas: una la pantalla (<code>app/…/page.jsx</code>), otra la ruta (<code>app/api/…</code>).</td>
+    </tr>
+    <tr>
+      <td>Toca <strong>un solo archivo</strong><br><span class="ex">o dos listas Owns comparten un archivo</span></td>
+      <td><strong class="red">Una sola persona</strong> hace esa HU completa. Los otros toman la segunda HU.</td>
+    </tr>
+  </table>
   <p class="note">
-    Antes de seguir, di en voz alta quién toma cada ticket: <span class="who">Mateo → T040</span>,
-    <span class="who">Johan → T041</span>, <span class="who">Tomás → T042</span>.
-    Si salieron más de tres tickets, <span class="who">Santiago</span> toma el cuarto con el mismo bloque del paso 2.
+    Di el reparto en voz alta antes de que nadie arranque. Si sobran tickets,
+    <span class="who">Santiago</span> toma uno con el mismo bloque del paso 2 y hace el merge después.
   </p>
 </div>
 
@@ -191,7 +212,7 @@ git push origin main</pre>
   </p>
 </div>
 
-<h2 style="margin-top:4mm">Si algo se rompe</h2>
+<h2 style="margin-top:3mm">Si algo se rompe</h2>
 <table>
   <tr><th style="width:33mm">Qué pasó</th><th style="width:30mm">Quién lo arregla</th><th>Qué hace, exactamente</th></tr>
   <tr>
@@ -224,7 +245,7 @@ git push origin main</pre>
   </tr>
 </table>
 
-<h2 style="margin-top:4mm">Las cuatro reglas que no se rompen</h2>
+<h2 style="margin-top:3mm">Las cuatro reglas que no se rompen</h2>
 <div class="rules">
   <ol>
     <li>Es <code>/speckit-implement</code>, <strong>no</strong> <code>/implement</code>.</li>
