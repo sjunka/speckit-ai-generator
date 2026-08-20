@@ -10,8 +10,13 @@ especificación es la fuente de verdad, el código es la salida.
 En este repo ya están escritas las cuatro piezas que Spec Kit necesita — las
 reglas del proyecto, qué hace la app, cómo se construye, y los 39 tickets.
 
-**La fase 1 ya se corrió.** T001–T009 están construidos y en `main`, con 72
-pruebas en verde, lint y build pasando. Faltan las fases 2, 3, 4 y 5.
+**La app está construida y desplegada:**
+[ia-generator-openspec.vercel.app](https://ia-generator-openspec.vercel.app/)
+
+Las cinco fases están hechas — 35 de los 39 tickets, 25 archivos de prueba —
+pero viven en la rama `ensayo-local-0819`, no en `main`. En `main` solo está la
+fase 1 y la documentación. **Esa rama hay que mergearla a `main` antes del
+sábado**; ver *Lo que falta antes del sábado*, abajo.
 
 ## Las reglas del Demo Day cambiaron: no se construye en vivo
 
@@ -36,12 +41,41 @@ El sábado se sigue [`docs/DIA-D.pdf`](docs/DIA-D.pdf) — es la única hoja que
 hay que llevar impresa, y trae la lista de lo que debe estar cierto antes de
 entrar al salón.
 
-Dos cosas cambian de orden respecto al plan original:
+### El truco de trazabilidad
 
-| Qué | Por qué |
-|---|---|
-| **El T030 va primero, no último** | Son las ocho llaves reales. Sin ellas nadie puede comprobar que su fase funciona de verdad, solo que sus pruebas pasan contra dobles. Tomás las saca apenas la fase 1 esté en su máquina, y las pone también en *Project Settings → Environment Variables* de Vercel |
-| **El T039 (desplegar) es requisito, no cierre** | «Funciona en mi máquina» no cumple la regla 1. La app tiene que estar en una URL pública, y `npm run smoke https://…vercel.app` tiene que salir en verde |
+La pregunta *«¿qué criterio de aceptación demuestra esta prueba?»* se contesta
+sola si cada prueba se llama por su criterio:
+
+```js
+it("CA-2: dado un usuario sin sesión, cuando pide /capture, entonces va a sign-in", ...)
+```
+
+Y entonces, delante del profesor:
+
+```bash
+npm test -- -t "CA-2"
+```
+
+Esa demostración de dos segundos vale más que cualquier explicación: el criterio
+de aceptación, la prueba y el resultado en verde en la misma pantalla. Va en los
+prompts del `DIA-D.pdf`, paso 2.3, y es obligatorio para las HU del sábado.
+
+### Lo que falta antes del sábado
+
+| # | Qué | Quién | Por qué bloquea |
+|---|---|---|---|
+| 1 | **Mergear `ensayo-local-0819` a `main`** y apuntar la rama de producción de Vercel a `main` | Santiago | El `DIA-D.pdf` dice que el push a `main` dispara el despliegue. Hoy eso es falso: `main` solo tiene la fase 1. Si el sábado Santiago mergea a `main` y Vercel no lo está mirando, el paso 3 no despliega nada |
+| 2 | **Poner `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in`** en *Project Settings → Environment Variables* de Vercel, y redesplegar | Tomás | Está en el `.env.local` local pero no en Vercel. Sin ella `auth.protect()` no redirige a la pantalla de sign-in: devuelve un **404 pelado**. Se comprueba con `curl -sI https://ia-generator-openspec.vercel.app/capture` — hoy responde `404` con la cabecera `x-clerk-auth-reason: protect-rewrite` |
+| 3 | **`npm run smoke https://ia-generator-openspec.vercel.app`** en verde, 3 de 3 | Santiago | Hoy da 2 de 3 por el punto anterior. Es el semáforo de la regla 1 del profesor |
+| 4 | **T037 — el recorrido a mano en el celular**, sobre la URL pública | Todos | Entrar → foto → imagen → video → descargar. Es literalmente la demo, y nunca se ha hecho de punta a punta contra el despliegue |
+| 5 | **Ensayo en seco de la HU en vivo** | Los cinco | Inventar una historia cualquiera y correr la secuencia del `DIA-D.pdf` cronometrada. Es lo que más cambia el resultado del sábado |
+
+Y una advertencia sobre Clerk: la app está usando una instancia de **desarrollo**
+(`pk_test_…`, `merry-beagle-90.clerk.accounts.dev`). Funciona, pero en un dominio
+que no es `localhost` el handshake de Clerk es frágil. Una instancia de
+producción necesita dominio propio con registros DNS, y un `.vercel.app` no los
+admite — así que la decisión es consciente: se va con la de desarrollo y se
+prueba el recorrido completo el viernes, no el sábado.
 
 ## Pruébalo en local antes de la presentación
 

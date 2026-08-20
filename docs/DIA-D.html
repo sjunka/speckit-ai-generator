@@ -91,8 +91,8 @@
   <tr><td class="box">☐</td><td class="own">Mateo</td><td><code>fase 2</code> mergeada en <code>main</code> — las pantallas, hablando por <code>fetch</code>.</td></tr>
   <tr><td class="box">☐</td><td class="own">Johan</td><td><code>fase 3</code> mergeada — <code>lib/db.js</code>, <code>lib/higgsfield.js</code> y las cuatro rutas bajo <code>app/api/</code>.</td></tr>
   <tr><td class="box">☐</td><td class="own">Tomás</td><td><strong class="red">T030 primero, no último.</strong> Las ocho llaves reales (Clerk, MongoDB Atlas, Vercel Blob, Higgsfield) en su <code>.env.local</code> <em>y</em> en <em>Project Settings → Environment Variables</em> de Vercel. Sin esto lo demás no se puede probar de verdad.</td></tr>
-  <tr><td class="box">☐</td><td class="own">Santiago</td><td><code>fase 5</code>: merge, <code>npm test</code>, <code>npm run build</code> y <strong>T039 — desplegar en Vercel</strong>. La URL pública escrita aquí: <span class="fill">https://______________________.vercel.app</span></td></tr>
-  <tr><td class="box">☐</td><td class="own">Santiago</td><td><code>npm run smoke <span class="fill">https://…vercel.app</span></code> en verde. Prueba las tres capas contra el despliegue real, no contra <code>localhost</code>.</td></tr>
+  <tr><td class="box">☐</td><td class="own">Santiago</td><td><code>fase 5</code>: merge, <code>npm test</code>, <code>npm run build</code> y <strong>T039 — desplegar en Vercel</strong>. La URL pública escrita aquí: <span class="fill">https://ia-generator-openspec.vercel.app</span></td></tr>
+  <tr><td class="box">☐</td><td class="own">Santiago</td><td><code>npm run smoke <span class="fill">https://ia-generator-openspec.vercel.app</span></code> en verde. Prueba las tres capas contra el despliegue real, no contra <code>localhost</code>.</td></tr>
   <tr><td class="box">☐</td><td class="own">Todos</td><td>El recorrido a mano en el celular, sobre la URL pública: entrar → foto → imagen → video → descargar. Eso es el «flujo completo» que pide la regla 1.</td></tr>
 </table>
 <p class="note">
@@ -116,7 +116,7 @@ npm test</pre>
   </div>
   <div>
     <ul>
-      <li><span class="who">Santiago</span> — <code>npm run smoke <span class="fill">https://…vercel.app</span></code> y abre la URL en el celular. Deja el panel de Vercel abierto en una pestaña.</li>
+      <li><span class="who">Santiago</span> — <code>npm run smoke <span class="fill">https://ia-generator-openspec.vercel.app</span></code> y abre la URL en el celular. Deja el panel de Vercel abierto en una pestaña.</li>
       <li><span class="who">Tomás</span> — confirma que su <code>.env.local</code> con las ocho llaves sigue en su máquina.</li>
       <li><span class="who">Sergio</span> — abre <code>spec.md</code> y <code>tasks.md</code> en pantalla, listos para proyectar.</li>
       <li><span class="who">Todos</span> — hotspot del celular encendido, por si falla el wifi del salón.</li>
@@ -253,8 +253,8 @@ git push origin main</pre>
   <h3><span class="num">4</span> <span class="who">Todos</span> validan sobre el despliegue, no sobre localhost <span class="when">≈ 1 min</span></h3>
   <ol>
     <li><span class="who">Santiago</span> proyecta el panel de Vercel y espera el check verde del deploy (1–2 min).</li>
-    <li>Con el deploy en verde: <code>npm run smoke <span class="fill">https://…vercel.app</span></code> — tres capas comprobadas en dos segundos, delante del profesor.</li>
-    <li>Abre <span class="fill">https://______________________.vercel.app</span> en el celular y recorre la Historia nueva de punta a punta.</li>
+    <li>Con el deploy en verde: <code>npm run smoke <span class="fill">https://ia-generator-openspec.vercel.app</span></code> — tres capas comprobadas en dos segundos, delante del profesor.</li>
+    <li>Abre <span class="fill">https://ia-generator-openspec.vercel.app</span> en el celular y recorre la Historia nueva de punta a punta.</li>
   </ol>
   <p class="note">
     Si el deploy todavía no termina, <span class="who">Santiago</span> corre <code>npm run dev</code> y muestra la app
