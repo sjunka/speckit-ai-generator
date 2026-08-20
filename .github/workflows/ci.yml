@@ -24,3 +24,4 @@ jobs:
             exit 1
           fi
       - run: npm test
+      - run: npm run build

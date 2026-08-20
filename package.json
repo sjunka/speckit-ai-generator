@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "docs:appendix": "node scripts/build-appendix.mjs"
+    "docs:appendix": "node scripts/build-appendix.mjs",
+    "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.7.8",
