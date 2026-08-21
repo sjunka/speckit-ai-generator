@@ -14,7 +14,8 @@
   .who { color:var(--blue); font-weight:700; }
   .block { margin-bottom:3.2mm; }
   h2 { page-break-after:avoid; }
-  pre, table, .warn, .three, .split { page-break-inside:avoid; }
+  pre, table, .three, .split { page-break-inside:avoid; }
+  .warn { page-break-inside:auto; }
   p { margin:0 0 1.4mm; }
   ol { padding-left:4.6mm; margin:0 0 1.4mm; }
   li { margin-bottom:0.8mm; }
@@ -104,12 +105,15 @@ Cada una con sus Acceptance Scenarios numerados en Given/When/Then, y agrega
 los Functional Requirements que hagan falta.
 NO crees una feature nueva. NO corras create-new-feature.sh. NO cambies de rama.
 NO escribas ni modifiques .specify/feature.json.
+NO crees la carpeta checklists/ ni ningun archivo dentro de ella.
 NO toques plan.md ni tasks.md. Solo edita ese spec.md que ya existe.</pre>
   <div class="warn">
     <b>Verifica esto antes de seguir.</b> <code>/speckit-specify</code> por dentro dice que <em>siempre</em> crea una carpeta nueva y reescribe <code>.specify/feature.json</code>. Si lo hace, los tres <code>/speckit-implement</code> apuntan a un <code>tasks.md</code> vacío y no construyen nada.
     <pre style="margin:1mm 0 0"><span class="k">cat</span> .specify/feature.json   <span class="c"># tiene que decir specs/001-ai-media-generator</span>
-<span class="k">git</span> <span class="a">status</span> <span class="f">--short</span>          <span class="c"># solo spec.md modificado, ninguna carpeta specs/002-…</span></pre>
-    Si salió una carpeta nueva: <code>rm -rf specs/002-*</code> y <code>git checkout .specify/feature.json</code>, y sigue.
+<span class="k">git</span> <span class="a">status</span> <span class="f">--short</span>          <span class="c"># solo spec.md modificado, ninguna carpeta specs/002-…</span>
+<span class="k">ls</span> specs/001-ai-media-generator/checklists   <span class="c"># tiene que decir: No such file</span></pre>
+    Si salió una carpeta nueva: <code>rm -rf specs/002-*</code> y <code>git checkout .specify/feature.json</code>.
+    Si salió <code>checklists/</code>: <code>rm -rf specs/001-ai-media-generator/checklists</code>. Con una sola casilla sin marcar ahí adentro, los tres <code>/speckit-implement</code> se <b>frenan a preguntar «¿sigo igual? (yes/no)»</b> y los tres quedan esperando en medio de la demo.
   </div>
   <p><strong>1.2</strong> — el reparto. Este prompt se pega tal cual, sin cambiar nada:</p>
   <pre>Agrega al final de specs/001-ai-media-generator/tasks.md cuatro fases nuevas para
@@ -132,6 +136,8 @@ commit de la prueba en rojo antes de escribir el codigo, con el mensaje
 test: US5-2 ..., para que el historial demuestre el test-first.
 Ninguna fase puede importar un simbolo nuevo de un archivo que le pertenece a
 otra fase — si lo necesita, lo define en su propio archivo.
+Ordena las tareas dentro de cada fase para que un archivo se cree antes de que
+otra tarea lo importe.
 Si una HU no da trabajo para alguna fase, deja esa fase con una sola tarea que
 lo diga.</pre>
   <pre><span class="k">git</span> <span class="a">add</span> specs/001-ai-media-generator/
@@ -149,6 +155,9 @@ lo diga.</pre>
 <span class="k">git</span> <span class="a">checkout</span> <span class="f">-b</span> feature/hu-ui
 
 <span class="k">/speckit-implement</span> <span class="a">fase 6</span>
+<span class="a">solo esa fase. no toques</span>
+<span class="a">.gitignore, eslint.config.mjs</span>
+<span class="a">ni ningun archivo de config.</span>
 
 <span class="k">npm</span> <span class="a">test</span>
 <span class="k">npx</span> <span class="f">-y</span> react-doctor@latest . <span class="f">--score</span>
@@ -160,6 +169,9 @@ lo diga.</pre>
 <span class="k">git</span> <span class="a">checkout</span> <span class="f">-b</span> feature/hu-api
 
 <span class="k">/speckit-implement</span> <span class="a">fase 7</span>
+<span class="a">solo esa fase. no toques</span>
+<span class="a">.gitignore, eslint.config.mjs</span>
+<span class="a">ni ningun archivo de config.</span>
 
 <span class="k">npm</span> <span class="a">test</span>
 <span class="k">npx</span> <span class="f">-y</span> react-doctor@latest . <span class="f">--score</span>
@@ -171,6 +183,9 @@ lo diga.</pre>
 <span class="k">git</span> <span class="a">checkout</span> <span class="f">-b</span> feature/hu-datos
 
 <span class="k">/speckit-implement</span> <span class="a">fase 8</span>
+<span class="a">solo esa fase. no toques</span>
+<span class="a">.gitignore, eslint.config.mjs</span>
+<span class="a">ni ningun archivo de config.</span>
 
 <span class="k">npm</span> <span class="a">test</span>
 <span class="k">npx</span> <span class="f">-y</span> react-doctor@latest . <span class="f">--score</span>
@@ -187,9 +202,10 @@ lo diga.</pre>
     <b>Lo que se rompió en el ensayo, y lo que hay que decirle al agente si pasa.</b>
     <ul>
       <li><b>Pantalla nueva que lee datos al montar</b> — las pruebas viejas de esa pantalla sustituyen <code>fetch</code> <em>por orden</em>, y la lectura nueva se come la primera respuesta encolada. Cinco pruebas que nada tienen que ver se ponen rojas. Se arregla en ese mismo archivo: que el doble responda <b>por método</b>, no por turno.</li>
-      <li><b>Score que baja de 100</b> — <code>react-doctor</code> castiga un <code>fetch</code> dentro de un <code>useEffect</code> en un <code>page.jsx</code>, y un <code>&lt;div onClick&gt;</code> haciendo de modal. Sácale el <code>fetch</code> a un hook en <code>hooks/</code> y usa <code>&lt;dialog&gt;</code>. También castiga <code>.filter().map()</code> encadenados — un <code>flatMap</code>. El baseline está en 95, así que hay margen para una advertencia, no para tres — y en el ensayo salieron justo tres.</li>
+      <li><b>Score que baja del piso</b> — <code>react-doctor</code> castiga un <code>fetch</code> dentro de un <code>useEffect</code> en un <code>page.jsx</code>, y un <code>&lt;div onClick&gt;</code> haciendo de modal. Sácale el <code>fetch</code> a un hook en <code>hooks/</code> y usa <code>&lt;dialog&gt;</code>. También castiga <code>.filter().map()</code> encadenados — un <code>flatMap</code>. El baseline está en 95, así que hay margen para una advertencia, no para tres — y en el ensayo salieron justo tres.</li>
       <li><b>Nombres accesibles que chocan</b> — dos imágenes con <code>alt</code> parecido, o un botón nuevo cuyo nombre accesible sale de su <code>alt</code>, rompen <code>getByRole</code> de pruebas viejas. Ponle <code>aria-label</code> explícito al botón nuevo.</li>
       <li><b>Helper de pruebas que no exporta lo nuevo</b> — si el archivo de la ruta tiene un <code>load()</code> que devuelve <code>{ POST, ...mocks }</code>, agregar un <code>GET</code> sin agregarlo ahí falla con <code>GET is not a function</code> y parece un error de la ruta.</li>
+      <li><b>El agente “verificando la configuración del proyecto”</b> — <code>/speckit-implement</code> trae un paso que revisa <code>.gitignore</code>, <code>eslint.config.mjs</code> y compañía, y les agrega lo que crea que falta. Si los tres lo hacen, los tres editan los mismos archivos compartidos y el merge del Paso 3 explota justo donde el reparto por <em>Owns</em> lo había evitado. Por eso el comando lleva la línea de «no toques ningún archivo de config».</li>
       <li><b>Importar algo que otro está escribiendo ahora</b> — nadie importa un símbolo nuevo de <code>test/fixtures.js</code> ni de un archivo de otra fase. Datos de ejemplo, en tu propio archivo.</li>
     </ul>
   </div>
