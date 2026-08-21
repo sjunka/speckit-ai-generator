@@ -50,6 +50,7 @@
   th { background:#f4f6f8; font-size:8pt; }
   td.own { width:19mm; font-weight:700; color:var(--blue); white-space:nowrap; }
   td code { font-size:7.6pt; }
+  table.cmds td code { white-space:nowrap; font-size:7.2pt; }
 </style>
 
 <h1>Día D — qué ejecuta cada uno</h1>
@@ -248,4 +249,57 @@ lo diga.</pre>
       y <code>git log --oneline</code> en su rama, donde el commit <code>test:</code> va antes del código.</li>
     <li>Si preguntan qué criterio de aceptación demuestra esa prueba, se lee el <code>Given/When/Then</code> numerado en <code>spec.md</code>, en la User Story que el profesor acaba de dictar. Ese es el camino completo: <strong>necesidad → spec → tasks → prueba → código → commit → desplegado</strong>.</li>
   </ol>
+</div>
+
+<div class="block" style="page-break-before:always">
+  <h2>Plan B · si el profesor prohíbe editar los specs anteriores <span class="when">solo cambia el Paso 1</span></h2>
+  <p>
+    Si dice que <code>specs/001-ai-media-generator/</code> es de solo lectura, la Historia entra como una <strong>feature nueva</strong>, <code>specs/002-…</code>.
+    <strong>La app funciona igual</strong> — el código no sabe dónde vive el spec. Lo que cambia es el Paso 1 de Sergio: pasa de dos prompts pegados a <strong>tres comandos de agente</strong>, porque <code>setup-tasks.sh</code> aborta si no existe <code>plan.md</code>. Cuenta ≈ 4 min en vez de 2. Los Pasos 0, 3 y 4 no cambian.
+  </p>
+  <div class="split">
+    <div>
+      <p><strong>B.1</strong> — Sergio, los tres comandos, uno detrás de otro:</p>
+      <pre><span class="k">/speckit-specify</span> <span class="fill">historia literal del profesor</span>
+
+Es una feature nueva encima del producto que ya
+existe en specs/001-ai-media-generator/spec.md.
+NO edites esa carpeta, es de solo lectura: leela
+para no contradecirla y escribe todo en la nueva.
+NO crees la carpeta checklists/.</pre>
+      <pre><span class="k">/speckit-plan</span> Reutiliza la arquitectura de
+specs/001-ai-media-generator/plan.md, no inventes
+otra. Fija el contrato HTTP y el reparto por
+propiedad de archivos en tres bloques disjuntos:
+pantallas, API, y pruebas/datos.
+NO edites specs/001-ai-media-generator/.</pre>
+      <pre><span class="k">/speckit-tasks</span> Agrupa las tareas por los tres
+bloques de propiedad que plan.md ya define, no por
+User Story. Nombra los encabezados "## Bloque A —",
+"## Bloque B —", "## Bloque C —", nunca "Fase".
+Cada tarea lleva su etiqueta [US1-N] y es test-first.
+NO edites specs/001-ai-media-generator/.</pre>
+      <pre><span class="k">git</span> <span class="a">add</span> specs/ .specify/feature.json
+<span class="k">git</span> <span class="a">commit</span> <span class="f">-m</span> <span class="s">"HU en vivo: feature 002"</span>
+<span class="k">git</span> <span class="a">push</span> origin main</pre>
+    </div>
+    <div>
+      <p><strong>B.2</strong> — verifica antes de repartir:</p>
+      <pre><span class="k">cat</span> .specify/feature.json   <span class="c"># specs/002-…</span>
+<span class="k">git</span> <span class="a">status</span> <span class="f">--short</span>          <span class="c"># specs/001 sin tocar</span>
+<span class="k">ls</span> specs/002-*/            <span class="c"># spec.md plan.md tasks.md</span></pre>
+      <div class="warn">
+        <b>La trampa que borra el proyecto.</b> <code>specs/001-…/tasks.md</code> también tiene una «<b>Fase 1</b>», y esa Fase 1 arranca con <code>npx create-next-app</code>. Si alguien corre <code>/speckit-implement fase 1</code> sin haber traído el <code>.specify/feature.json</code> nuevo, su agente lee el archivo equivocado y <b>vuelve a andamiar el proyecto encima del que ya existe</b>.
+        <br>Por eso los encabezados de 002 se llaman <b>bloques</b>, no fases: «bloque A» no coincide con nada en 001, así que el agente se queda quieto y lo dice.
+      </div>
+      <p><strong>B.3</strong> — el Paso 2 igual, cambiando solo el argumento. Cada quien hace <code>git pull</code> <em>antes</em>, o su agente lee el spec viejo:</p>
+      <table class="cmds" style="margin-bottom:1.4mm">
+        <tr><td class="own">Mateo</td><td><code>/speckit-implement bloque A</code></td><td>pantallas</td></tr>
+        <tr><td class="own">Johan</td><td><code>/speckit-implement bloque B</code></td><td>API</td></tr>
+        <tr><td class="own">Tomás</td><td><code>/speckit-implement bloque C</code></td><td>pruebas y datos</td></tr>
+      </table>
+      <p>Las cinco trampas del ensayo del Paso 2 aplican igual: son del código, no del spec.</p>
+      <p><b>Si el tiempo aprieta</b> y <code>/speckit-plan</code> se demora: un solo prompt que escriba <code>plan.md</code> y <code>tasks.md</code> de una vez también sirve. Se pierde el comando en pantalla, no la trazabilidad.</p>
+    </div>
+  </div>
 </div>
