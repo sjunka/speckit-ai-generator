@@ -20,6 +20,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Historia completa: el checkout por defecto es shallow y de una sola
+          # rama, y entonces origin/develop no existe dentro del runner.
+          fetch-depth: 0
+
+      - name: Traer develop
+        run: git fetch origin develop:refs/remotes/origin/develop
 
       - name: Crear PR si no existe
         env:
@@ -32,7 +39,7 @@ jobs:
 
           if [ -z "$EXISTING" ]; then
             # Si la rama no aporta commits nuevos sobre develop, no hay nada que integrar.
-            if [ -z "$(git log origin/develop.."$BRANCH" --oneline)" ]; then
+            if [ -z "$(git log origin/develop..HEAD --oneline)" ]; then
               echo "La rama no tiene commits por delante de develop. Nada que hacer."
               exit 0
             fi
