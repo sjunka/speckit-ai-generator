@@ -1,0 +1,219 @@
+<meta charset="utf-8">
+<title>Final Demo Day</title>
+<style>
+  :root{
+    --ink:#14171a; --dim:#5b636b; --hair:#dfe3e7; --wash:#f5f7f8;
+    --go:#15803d; --stop:#c0271c; --key:#0b5cad;
+    --term:#1b1f27; --t-fg:#eceff4; --t-cmd:#ff7b9c; --t-arg:#a3e05f;
+    --t-flag:#6ad0ee; --t-str:#f2d06b; --t-dim:#7c8595; --t-fill:#ffa63d;
+    --mono:'SF Mono',ui-monospace,Menlo,'DejaVu Sans Mono',monospace;
+    --sans:-apple-system,'SF Pro Text','Segoe UI',Inter,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{font:7.2pt/1.21 var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased}
+
+  /* masthead */
+  .top{display:flex;align-items:flex-end;gap:2.6mm;border-bottom:1.6pt solid var(--ink);padding-bottom:0.9mm;margin-bottom:1.5mm}
+  h1{font-size:13pt;letter-spacing:-0.3pt;font-weight:700;line-height:1}
+  .top .tag{font:6.6pt/1 var(--mono);letter-spacing:0.5pt;text-transform:uppercase;color:var(--dim);padding-bottom:0.5mm}
+  .top .rt{margin-left:auto;font:6.8pt/1 var(--mono);color:var(--dim);padding-bottom:0.5mm}
+
+  /* identity */
+  table{border-collapse:collapse;width:100%;margin-bottom:1.8mm}
+  th{font:6pt/1 var(--mono);letter-spacing:0.4pt;text-transform:uppercase;color:var(--dim);
+     text-align:left;padding:0 1.6mm 0.8mm;border-bottom:0.7pt solid var(--hair)}
+  td{padding:0.5mm 1.5mm;border-bottom:0.4pt solid var(--hair);vertical-align:baseline;font-size:6.9pt}
+  td.n{font-weight:650;color:var(--key);white-space:nowrap;width:17mm}
+  td.b{font:6.6pt var(--mono);white-space:nowrap;width:26mm}
+  td.k{font:6.6pt var(--mono);font-weight:650;white-space:nowrap;width:19mm}
+  td.f{font:6.3pt var(--mono);color:var(--dim)}
+
+  /* step spine */
+  .step{display:flex;gap:2.2mm;margin-bottom:1.15mm;page-break-inside:avoid}
+  .rail{width:6mm;flex:none;text-align:right}
+  .rail b{font:11pt/0.9 var(--mono);font-weight:700;color:var(--go);display:block}
+  .rail i{font:5.8pt/1.2 var(--mono);font-style:normal;color:var(--dim);display:block;margin-top:0.6mm}
+  .body{flex:1;min-width:0}
+  h2{font-size:7.8pt;font-weight:700;letter-spacing:-0.1pt;margin-bottom:0.8mm;
+     border-bottom:0.6pt solid var(--hair);padding-bottom:0.5mm;display:flex;align-items:baseline;gap:2mm}
+  h2 .who{color:var(--key)}
+  h2 .when{margin-left:auto;font:6.6pt var(--mono);font-weight:400;color:var(--dim)}
+  p{margin:0 0 1mm}
+  .note{font-size:6.8pt;line-height:1.28;color:var(--dim);margin:0.2mm 0 0.8mm}
+  .note b{color:var(--ink)}
+  
+  pre{font:6.45pt/1.27 var(--mono);background:var(--term);color:var(--t-fg);
+      padding:1.15mm 1.7mm;margin:0 0 0.9mm;border-radius:2px;
+      white-space:pre-wrap;word-break:break-word;page-break-inside:avoid}
+  .k{color:var(--t-cmd)} .a{color:var(--t-arg)} .f{color:var(--t-flag)}
+  .s{color:var(--t-str)} .c{color:var(--t-dim)}
+  .fill{color:var(--t-fill);font-weight:700;border-bottom:0.8pt solid var(--t-fill)}
+  pre.p{background:var(--wash);color:var(--ink);border:0.6pt solid var(--hair);font-size:6.5pt;line-height:1.23}
+  pre.p .k{color:var(--stop);font-weight:700}
+  pre.p .fill{color:#9a5b00;border-bottom-color:#9a5b00}
+  pre.p .c{color:var(--dim)}
+
+  .cols{display:flex;gap:2.2mm}
+  .cols>div{flex:1;min-width:0}
+  .cols pre{font-size:6.05pt;line-height:1.24}
+  .name{display:block;font:6.2pt/1 var(--mono);font-weight:700;letter-spacing:0.5pt;
+        color:var(--t-flag);margin-bottom:1.2mm}
+
+  .gate{border-left:1.8pt solid var(--go);background:#f2f9f4;padding:0.85mm 1.8mm;font-size:6.8pt;line-height:1.28;margin:0 0 0.8mm}
+  .gate b{color:var(--go)}
+
+  /* traps */
+  .traps{border:0.8pt solid var(--stop);border-radius:2px;padding:1mm 1.7mm 0.1mm;page-break-inside:avoid}
+  .traps h3{font:6.3pt/1 var(--mono);letter-spacing:0.5pt;text-transform:uppercase;color:var(--stop);margin-bottom:1mm}
+  .traps ol{list-style:none;padding:0;columns:3;column-gap:3.2mm}
+  .traps li{font-size:6.3pt;line-height:1.25;margin-bottom:0.8mm;break-inside:avoid;
+            padding-left:4.2mm;text-indent:-4.2mm}
+  .traps li .no{font:5.8pt var(--mono);font-weight:700;color:var(--stop);
+                display:inline-block;width:4.2mm;text-indent:0}
+  .traps code,td code,p code,li code,.note code,.gate code{font:6.1pt var(--mono);background:var(--wash);
+    border:0.5pt solid var(--hair);border-radius:1.5px;padding:0 0.7mm}
+  .traps b{color:var(--stop)}
+</style>
+
+<div class="top">
+  <h1>Final Demo Day</h1>
+  <span class="tag">runbook · una sola pasada</span>
+  <span class="rt">ia-generator-openspec.vercel.app</span>
+</div>
+
+<table>
+  <tr><th>Quién</th><th>Rama</th><th>Bloque</th><th>Archivos que le pertenecen — nadie más los toca</th></tr>
+  <tr><td class="n">Sergio</td><td class="b">main</td><td class="k">spec</td><td class="f">specs/002-*/**, .specify/feature.json</td></tr>
+  <tr><td class="n">Mateo</td><td class="b">feature/hu-ui</td><td class="k">A · pantallas</td><td class="f">app/**/page.jsx, components/**, hooks/**</td></tr>
+  <tr><td class="n">Johan</td><td class="b">feature/hu-api</td><td class="k">B · API</td><td class="f">app/api/**/route.js y sus .test.js</td></tr>
+  <tr><td class="n">Tomás</td><td class="b">feature/hu-datos</td><td class="k">C · datos</td><td class="f">test/** — dobles de Mongo y de HTTP, fixtures</td></tr>
+  <tr><td class="n">Santiago</td><td class="b">main</td><td class="k">merge</td><td class="f">scripts/**</td></tr>
+</table>
+
+<div class="step">
+  <div class="rail"><b>0</b><i>−20 min</i></div>
+  <div class="body">
+    <h2>Los cinco, antes de entrar <span class="when">cada uno en su máquina</span></h2>
+<pre><span class="k">cd</span> <span class="a">~/Documents/web/speckit-ai-generator</span>
+<span class="k">git</span> <span class="a">checkout</span> main <span class="f">&amp;&amp;</span> <span class="k">git</span> <span class="a">pull</span> origin main <span class="f">&amp;&amp;</span> <span class="k">npm</span> <span class="a">install</span>
+<span class="k">npm</span> <span class="a">test</span>                                    <span class="c"># 0 failed</span>
+<span class="k">npx</span> <span class="f">-y</span> react-doctor@latest . <span class="f">--score</span>        <span class="c"># ≥ 95</span>
+<span class="k">npm</span> <span class="a">run</span> smoke <span class="s">https://ia-generator-openspec.vercel.app</span></pre>
+    <div class="gate"><b>Puerta:</b> si el smoke sale rojo, lo desplegado es viejo y la demo arranca rota. Se redespliega <code>main</code> <b>antes de entrar</b>, no en clase.</div>
+  </div>
+</div>
+
+<div class="step">
+  <div class="rail"><b>1</b><i>≈4 min</i></div>
+  <div class="body">
+    <h2><span class="who">Sergio</span> — la Historia entra como feature nueva <span class="when">rama main</span></h2>
+<pre class="p"><span class="k">/speckit-specify</span> <span class="fill">historia literal que dictó el profesor</span>
+Es una feature nueva encima del producto que ya existe en specs/001-ai-media-generator/spec.md.
+NO edites esa carpeta: leela para no contradecirla y escribe todo en la nueva. NO crees checklists/.</pre>
+<pre class="p"><span class="k">/speckit-plan</span> Reutiliza la arquitectura de specs/001-ai-media-generator/plan.md, no inventes otra.
+Fija el contrato HTTP y el reparto por propiedad de archivos en tres bloques disjuntos: A pantallas
+(app/**/page.jsx, components/**, hooks/**), B API (app/api/**/route.js), C datos (test/**).
+NO edites specs/001-ai-media-generator/.</pre>
+<pre class="p"><span class="k">/speckit-tasks</span> Agrupa por los tres bloques que plan.md ya define, no por User Story. Encabezados
+exactos "## Bloque A —", "## Bloque B —", "## Bloque C —": nunca la palabra "Fase". Cada tarea lleva
+[US1-N], es test-first, y manda hacer commit de la prueba en rojo con mensaje "test: ..." antes del
+codigo. Ningun bloque importa un simbolo nuevo de un archivo de otro bloque.
+NO edites specs/001-ai-media-generator/.</pre>
+<pre><span class="k">cat</span> .specify/feature.json   <span class="c"># specs/002-…  ← si dice 001, no sirvió</span>
+<span class="k">git</span> <span class="a">status</span> <span class="f">--short</span>          <span class="c"># specs/001 intacto · sin carpeta checklists/</span>
+<span class="k">git</span> <span class="a">add</span> specs/ .specify/feature.json
+<span class="k">git</span> <span class="a">commit</span> <span class="f">-m</span> <span class="s">"HU en vivo: feature 002"</span> <span class="f">&amp;&amp;</span> <span class="k">git</span> <span class="a">push</span> origin main</pre>
+    <p class="note">En voz alta: <b>«bloque A Mateo, bloque B Johan, bloque C Tomás — arranquen»</b>.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="rail"><b>2</b><i>≈6 min</i></div>
+  <div class="body">
+    <h2><span class="who">Mateo · Johan · Tomás</span> — en paralelo <span class="when">cada uno su columna, de arriba abajo</span></h2>
+    <div class="cols">
+      <div><pre><span class="name">MATEO · BLOQUE A</span><span class="k">git</span> <span class="a">checkout</span> main
+<span class="k">git</span> <span class="a">pull</span> origin main
+<span class="k">cat</span> .specify/feature.json <span class="c"># 002</span>
+<span class="k">git</span> <span class="a">checkout</span> <span class="f">-b</span> feature/hu-ui
+
+<span class="k">/speckit-implement</span> <span class="a">bloque A</span>
+<span class="a">solo ese bloque. no toques</span>
+<span class="a">ningun archivo de config.</span>
+
+<span class="k">npm</span> <span class="a">test</span>
+<span class="k">npx</span> <span class="f">-y</span> react-doctor@latest . <span class="f">--score</span>
+<span class="k">git</span> <span class="a">add</span> <span class="f">-A</span>
+<span class="k">git</span> <span class="a">commit</span> <span class="f">-m</span> <span class="s">"feat: HU pantallas"</span>
+<span class="k">git</span> <span class="a">push</span> <span class="f">-u</span> origin feature/hu-ui</pre></div>
+      <div><pre><span class="name">JOHAN · BLOQUE B</span><span class="k">git</span> <span class="a">checkout</span> main
+<span class="k">git</span> <span class="a">pull</span> origin main
+<span class="k">cat</span> .specify/feature.json <span class="c"># 002</span>
+<span class="k">git</span> <span class="a">checkout</span> <span class="f">-b</span> feature/hu-api
+
+<span class="k">/speckit-implement</span> <span class="a">bloque B</span>
+<span class="a">solo ese bloque. no toques</span>
+<span class="a">ningun archivo de config.</span>
+
+<span class="k">npm</span> <span class="a">test</span>
+<span class="k">npx</span> <span class="f">-y</span> react-doctor@latest . <span class="f">--score</span>
+<span class="k">git</span> <span class="a">add</span> <span class="f">-A</span>
+<span class="k">git</span> <span class="a">commit</span> <span class="f">-m</span> <span class="s">"feat: HU API"</span>
+<span class="k">git</span> <span class="a">push</span> <span class="f">-u</span> origin feature/hu-api</pre></div>
+      <div><pre><span class="name">TOMÁS · BLOQUE C</span><span class="k">git</span> <span class="a">checkout</span> main
+<span class="k">git</span> <span class="a">pull</span> origin main
+<span class="k">cat</span> .specify/feature.json <span class="c"># 002</span>
+<span class="k">git</span> <span class="a">checkout</span> <span class="f">-b</span> feature/hu-datos
+
+<span class="k">/speckit-implement</span> <span class="a">bloque C</span>
+<span class="a">solo ese bloque. no toques</span>
+<span class="a">ningun archivo de config.</span>
+
+<span class="k">npm</span> <span class="a">test</span>
+<span class="k">npx</span> <span class="f">-y</span> react-doctor@latest . <span class="f">--score</span>
+<span class="k">git</span> <span class="a">add</span> <span class="f">-A</span>
+<span class="k">git</span> <span class="a">commit</span> <span class="f">-m</span> <span class="s">"feat: HU datos"</span>
+<span class="k">git</span> <span class="a">push</span> <span class="f">-u</span> origin feature/hu-datos</pre></div>
+    </div>
+    <div class="gate"><b>Puerta:</b> rojo en <code>npm test</code> o score bajo <b>95</b> es <b>no-push</b>. «Archivo de config» = <code>.gitignore</code>, <code>eslint.config.mjs</code>, <code>next.config.mjs</code>, <code>package.json</code>, <code>vitest.config.mjs</code>. Anuncia tu push en voz alta.</div>
+  </div>
+</div>
+
+<div class="step">
+  <div class="rail"><b>3</b><i>≈2 min</i></div>
+  <div class="body">
+    <h2><span class="who">Santiago</span> — junta y despliega <span class="when">solo cuando los tres hayan anunciado</span></h2>
+<pre><span class="k">git</span> <span class="a">checkout</span> main <span class="f">&amp;&amp;</span> <span class="k">git</span> <span class="a">pull</span> origin main <span class="f">&amp;&amp;</span> <span class="k">git</span> <span class="a">fetch</span> origin
+<span class="k">git</span> <span class="a">merge</span> <span class="f">--no-ff</span> origin/feature/hu-datos      <span class="c"># C primero, luego B, luego A</span>
+<span class="k">git</span> <span class="a">merge</span> <span class="f">--no-ff</span> origin/feature/hu-api
+<span class="k">git</span> <span class="a">merge</span> <span class="f">--no-ff</span> origin/feature/hu-ui
+<span class="k">npm</span> <span class="a">run</span> lint <span class="f">&amp;&amp;</span> <span class="k">npm</span> <span class="a">test</span> <span class="f">&amp;&amp;</span> <span class="k">npx</span> <span class="f">-y</span> react-doctor@latest . <span class="f">--score</span> <span class="f">&amp;&amp;</span> <span class="k">npm</span> <span class="a">run</span> build
+<span class="k">git</span> <span class="a">push</span> origin main                              <span class="c"># las feature/* tambien lanzan preview: ignoralos</span>
+<span class="k">git</span> <span class="a">log</span> <span class="f">--graph --oneline -12</span>                <span class="c"># proyecta esto mientras Vercel construye main</span></pre>
+    <p class="note">Un merge por línea, esperando a que termine. Si uno se enreda: <code>git merge --abort</code> — esa rama salió de su bloque.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="rail"><b>4</b><i>≈1 min</i></div>
+  <div class="body">
+    <h2><span class="who">Todos</span> — validan sobre el despliegue <span class="when">con datos móviles, no con el wifi del salón</span></h2>
+<pre><span class="k">npm</span> <span class="a">run</span> smoke <span class="s">https://ia-generator-openspec.vercel.app</span>   <span class="c"># tras el check verde</span>
+<span class="k">npm</span> <span class="a">test</span> <span class="f">--</span> <span class="f">-t</span> <span class="s">"US1-3"</span>                              <span class="c"># unas passed, el resto skipped</span></pre>
+    <p class="note"><b>Trazabilidad, si preguntan:</b> <code>tasks.md</code> en su bloque → la etiqueta <code>[US1-3]</code> → esa prueba → el <code>Given/When/Then</code> número 3 en <code>spec.md</code> → <code>git log</code>, donde el commit <code>test:</code> va antes del código.</p>
+  </div>
+</div>
+
+<div class="traps">
+  <h3>Ocho cosas que rompen esto — salieron en el ensayo</h3>
+  <ol>
+    <li><span class="no">01</span><b>Nunca la palabra «fase».</b> <code>specs/001/tasks.md</code> tiene una «Fase 1» que corre <code>create-next-app</code> y re-andamia el proyecto. Por eso: <b>bloques</b>.</li>
+    <li><span class="no">02</span><b><code>git pull</code> antes de implementar.</b> Sin el <code>.specify/feature.json</code> nuevo, tu agente lee el spec viejo y no construye nada.</li>
+    <li><span class="no">03</span><b><code>checklists/</code> congela a los tres.</b> Una casilla vacía y <code>/speckit-implement</code> se detiene a preguntar «¿sigo? (yes/no)».</li>
+    <li><span class="no">04</span><b>El agente «verifica la config».</b> Toca <code>.gitignore</code> y <code>eslint.config.mjs</code>; si los tres lo hacen, el merge explota.</li>
+    <li><span class="no">05</span><b>El doble de <code>fetch</code> responde por orden.</b> La lectura al montar se come la primera respuesta y tumba cinco pruebas viejas. Que responda <b>por método</b>.</li>
+    <li><span class="no">06</span><b>Score bajo 95 no despliega.</b> <code>fetch</code> en un hook, no en <code>useEffect</code> de <code>page.jsx</code>; modal <code>&lt;dialog&gt;</code>; <code>flatMap</code>, no <code>.filter().map()</code>.</li>
+    <li><span class="no">07</span><b>Nombres accesibles que chocan.</b> Dos <code>alt</code> parecidos, o un botón que toma su nombre del <code>alt</code>, rompen <code>getByRole</code> viejo. <code>aria-label</code> explícito.</li>
+    <li><span class="no">08</span><b>El helper de pruebas no exporta lo nuevo.</b> <code>load()</code> devuelve <code>{ POST, ...mocks }</code>: sin agregarle <code>GET</code> falla con <code>GET is not a function</code>.</li>
+  </ol>
+</div>

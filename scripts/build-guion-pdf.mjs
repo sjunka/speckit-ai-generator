@@ -27,7 +27,10 @@ await page.pdf({
   format: 'A4', printBackground: true, displayHeaderFooter: true,
   headerTemplate: '<div></div>',
   footerTemplate: `<div style="width:100%;font-size:7pt;color:#9aa0a8;font-family:-apple-system,Arial;padding:0 13mm;display:flex;justify-content:space-between"><span>${name === 'GUION-PRESENTACION' ? 'Guion · 10 minutos' : name}</span><span class="pageNumber"></span></div>`,
-  margin: { top: '14mm', bottom: '16mm', left: '13mm', right: '13mm' },
+  margin: {
+    top: process.env.PDF_MT ?? '14mm', bottom: process.env.PDF_MB ?? '16mm',
+    left: process.env.PDF_ML ?? '13mm', right: process.env.PDF_MR ?? '13mm',
+  },
 })
 await browser.close()
 console.log(`listo: ${OUT}`)

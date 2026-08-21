@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "docs:appendix": "node scripts/build-appendix.mjs",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "docs:demoday": "PDF_MT=9mm PDF_MB=9mm PDF_ML=11mm PDF_MR=11mm node scripts/build-guion-pdf.mjs final_demo_day"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.7.8",
