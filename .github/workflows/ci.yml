@@ -1,27 +1,79 @@
 name: CI
 
+# Un push a una rama con PR abierto disparaba dos corridas idénticas (una por
+# `push`, otra por `pull_request`). Con `push` limitado a main, cada commit
+# corre una sola vez: en su PR mientras se revisa, y en main al fusionar.
 on:
   push:
+    branches: [main]
   pull_request:
 
+# Si llegan dos commits seguidos, la corrida vieja se cancela sola.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "22"
+  # Fijada a propósito: react-doctor es 0.x, así que una minor puede cambiar
+  # cómo puntúa y romper el CI en un PR que no tocó nada. Se sube a mano.
+  REACT_DOCTOR_VERSION: "0.9.12"
+
 jobs:
+  # Las pruebas y la calidad corren en paralelo y a propósito no dependen una
+  # de la otra: un lint sucio no puede esconder si el código funciona, y una
+  # prueba roja no puede esconder una regresión de calidad.
   test:
+    name: Pruebas y build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
       - run: npm ci
-      - run: npm run lint
-      - run: npx -y react-doctor@latest . --score > /tmp/score.txt
-      - name: Check react-doctor score
+      - name: Pruebas unitarias
+        run: npm test
+      - name: Build de producción
+        run: npm run build
+
+  quality:
+    name: Lint y react-doctor
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+
+      # El puntaje se imprime siempre, no solo cuando falla: sin eso la única
+      # forma de saber en cuánto va es abrir el log y no encontrar nada.
+      - name: react-doctor
         run: |
-          BASELINE=$(cat .react-doctor-baseline 2>/dev/null || echo "0")
-          CURRENT=$(cat /tmp/score.txt)
+          BASELINE=$(cat .react-doctor-baseline 2>/dev/null || echo 0)
+          CURRENT=$(npx -y react-doctor@${REACT_DOCTOR_VERSION} . --score | tr -d '[:space:]')
+
+          # Si react-doctor cambia de formato o falla a medias, `-lt` reventaría
+          # con "integer expression expected" y el mensaje no diría por qué.
+          case "$CURRENT" in
+            ''|*[!0-9]*)
+              echo "::error::react-doctor no devolvió un entero: '$CURRENT'"
+              exit 1
+              ;;
+          esac
+
+          echo "### react-doctor: $CURRENT / 100 (mínimo $BASELINE)" >> "$GITHUB_STEP_SUMMARY"
+
           if [ "$CURRENT" -lt "$BASELINE" ]; then
-            echo "react-doctor score regression: $CURRENT < $BASELINE"
+            echo "::error::Regresión de calidad: $CURRENT < $BASELINE. Corrige o justifica el nuevo mínimo en .react-doctor-baseline."
             exit 1
           fi
-      - run: npm test
-      - run: npm run build
+          echo "react-doctor: $CURRENT (mínimo $BASELINE)"
