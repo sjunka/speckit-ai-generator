@@ -3,30 +3,39 @@ name: CI
 on:
   pull_request:
     branches: [develop, main]
+  # También en push a cualquier rama: los PRs que abre auto-pr.yml con
+  # GITHUB_TOKEN no disparan el evento pull_request, pero los status checks
+  # se anclan al SHA, así que el CI del push cuenta igual para el merge.
   push:
-    branches: [develop, main]
   merge_group:
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   conflict-check:
     name: Compatibilidad con la rama destino
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Verificar que no haya conflictos de merge
         run: |
+          BASE="${{ github.base_ref }}"
+          # En push, la base es develop salvo que la rama ya sea main/develop.
+          if [ -z "$BASE" ]; then
+            case "${{ github.ref_name }}" in
+              main|develop) echo "Rama base, sin destino que verificar."; exit 0 ;;
+              *) BASE=develop ;;
+            esac
+          fi
           git config user.name "ci"
           git config user.email "ci@local"
-          git fetch origin "${{ github.base_ref }}"
-          if ! git merge --no-commit --no-ff "origin/${{ github.base_ref }}"; then
-            echo "::error::La rama tiene conflictos con ${{ github.base_ref }}. Actualízala antes de mergear."
+          git fetch origin "$BASE"
+          if ! git merge --no-commit --no-ff "origin/$BASE"; then
+            echo "::error::La rama tiene conflictos con $BASE. Actualízala antes de mergear."
             exit 1
           fi
           git merge --abort || true

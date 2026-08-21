@@ -1,0 +1,50 @@
+name: Auto-PR hacia develop
+
+# Al subir cualquier rama que no sea main ni develop, abre el PR contra develop
+# (si no existe ya) y le activa el auto-merge. A partir de ahí manda el CI:
+# lint + tests + build + chequeo de conflictos. Si todo pasa, GitHub mergea solo.
+
+on:
+  push:
+    branches-ignore:
+      - main
+      - develop
+      - "dependabot/**"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  abrir-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Crear PR si no existe y activar auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          EXISTING=$(gh pr list --head "$BRANCH" --base develop --state open --json number -q '.[0].number' || true)
+
+          if [ -z "$EXISTING" ]; then
+            # Si la rama no aporta commits nuevos sobre develop, no hay nada que integrar.
+            if [ -z "$(git log origin/develop.."$BRANCH" --oneline)" ]; then
+              echo "La rama no tiene commits por delante de develop. Nada que hacer."
+              exit 0
+            fi
+            gh pr create \
+              --base develop \
+              --head "$BRANCH" \
+              --title "$BRANCH -> develop" \
+              --body "PR abierto automáticamente al subir \`$BRANCH\`. Se mergea solo cuando el CI pase en verde."
+            EXISTING=$(gh pr list --head "$BRANCH" --base develop --state open --json number -q '.[0].number')
+            echo "PR #$EXISTING creado."
+          else
+            echo "Ya existe el PR #$EXISTING, reutilizándolo."
+          fi
+
+          gh pr merge --squash --auto "$EXISTING"
