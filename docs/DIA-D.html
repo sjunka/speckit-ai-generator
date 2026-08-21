@@ -4,30 +4,24 @@
   :root { --ink:#16191d; --dim:#5f6871; --blue:#0b5cad; --red:#b3261e;
           --bg:#272822; --fg:#f8f8f2; --pink:#f92672; --grn:#a6e22e; --cy:#66d9ef; --yel:#e6db74; --org:#fd971f; --cmt:#75715e; }
   * { box-sizing:border-box; margin:0; }
-  body { font:8.8pt/1.36 -apple-system,'Segoe UI',Arial,sans-serif; color:var(--ink); }
+  body { font:9pt/1.38 -apple-system,'Segoe UI',Arial,sans-serif; color:var(--ink); }
 
   h1 { font-size:14pt; letter-spacing:-0.2pt; }
-  .sub { color:var(--dim); font-size:8.4pt; margin:0.8mm 0 3mm; }
-  h2 { font-size:9.8pt; margin:0 0 1.8mm; padding-bottom:0.6mm; border-bottom:1.8pt solid var(--ink); }
-  .newpage { page-break-before:always; }
-
-  .step { margin:0 0 3.2mm; page-break-inside:avoid; }
-  .step.long { page-break-inside:auto; }
-  .step h3 { font-size:9.6pt; margin:0 0 1.6mm; display:flex; align-items:baseline; gap:2mm; }
-  .num { background:var(--ink); color:#fff; font-size:7.4pt; font-weight:700;
-         width:4.8mm; height:4.8mm; border-radius:50%;
-         display:inline-flex; align-items:center; justify-content:center; flex:none; }
+  .sub { color:var(--dim); font-size:8.6pt; margin:0.8mm 0 3mm; }
+  h2 { font-size:10pt; margin:0 0 1.8mm; padding-bottom:0.6mm; border-bottom:1.8pt solid var(--ink);
+       display:flex; align-items:baseline; gap:2mm; }
+  h2 .when { color:var(--dim); font-weight:400; font-size:8.4pt; margin-left:auto; }
   .who { color:var(--blue); font-weight:700; }
-  .when { color:var(--dim); font-weight:400; font-size:8pt; margin-left:auto; }
+  .block { page-break-inside:avoid; margin-bottom:3.4mm; }
+  p { margin:0 0 1.4mm; }
+  ol { padding-left:4.6mm; margin:0 0 1.4mm; }
+  li { margin-bottom:0.8mm; }
+  strong.red { color:var(--red); }
 
-  p { margin:0 0 1.3mm; }
-  ol { padding-left:4.5mm; margin:0 0 1.4mm; }
-  li { margin-bottom:0.6mm; }
-
-  code { font:8pt/1.25 'SF Mono',Menlo,monospace; background:var(--bg); color:var(--fg);
+  code { font:8.2pt/1.25 'SF Mono',Menlo,monospace; background:var(--bg); color:var(--fg);
          padding:0.2mm 0.9mm; border-radius:2px; }
-  pre { font:7.9pt/1.45 'SF Mono',Menlo,monospace; background:var(--bg); color:var(--fg);
-        padding:1.6mm 2.2mm; margin:0 0 1.5mm; border-radius:3px;
+  pre { font:8pt/1.5 'SF Mono',Menlo,monospace; background:var(--bg); color:var(--fg);
+        padding:1.7mm 2.3mm; margin:0 0 1.6mm; border-radius:3px;
         white-space:pre-wrap; word-break:break-word; }
   pre .k { color:var(--pink); }
   pre .a { color:var(--grn); }
@@ -35,170 +29,154 @@
   pre .s { color:var(--yel); }
   pre .c { color:var(--cmt); }
   pre .fill { color:var(--org); font-weight:700; border-bottom:0.8pt solid var(--org); }
-
-  .three { display:flex; gap:2.5mm; }
-  .three pre { flex:1; margin-bottom:1.5mm; }
-  .name { display:block; font-weight:700; color:var(--cy); font-size:8.4pt;
+  .name { display:block; font-weight:700; color:var(--cy); font-size:8.6pt;
           font-family:-apple-system,Arial,sans-serif; margin-bottom:1mm; }
+  .three { display:flex; gap:2.6mm; }
+  .three pre { flex:1; margin-bottom:1.6mm; }
   .split { display:flex; gap:4mm; align-items:flex-start; }
   .split > * { flex:1; }
-  strong.red { color:var(--red); }
 
-  table.map { border-collapse:collapse; width:100%; font-size:8.4pt; margin-bottom:2mm; }
-  table.map th, table.map td { border:0.8pt solid #dde1e6; padding:1mm 1.6mm; text-align:left; vertical-align:middle; }
-  table.map th { background:#f4f6f8; font-size:7.8pt; }
-  table.map td.own { width:19mm; font-weight:700; color:var(--blue); white-space:nowrap; }
+  table { border-collapse:collapse; width:100%; font-size:8.6pt; margin-bottom:2.4mm; }
+  th, td { border:0.8pt solid #dde1e6; padding:1.1mm 1.7mm; text-align:left; vertical-align:middle; }
+  th { background:#f4f6f8; font-size:8pt; }
+  td.own { width:20mm; font-weight:700; color:var(--blue); white-space:nowrap; }
 </style>
 
 <h1>Día D — qué ejecuta cada uno</h1>
 <p class="sub">
-  Misma constitución que las cinco fases: <strong>una sola persona escribe la especificación y reparte los
-  tickets, el resto solo los ejecuta</strong>. Ramas y archivos ya están decididos y no se inventan en vivo.
-  Lo único que se escribe a mano es <span style="color:var(--org);font-weight:700">la Historia que dicte el profesor</span>.
+  Ramas y fases ya están repartidas. Cada quien corre <strong>un solo comando de agente</strong>: <code>/speckit-implement</code> con su fase.
+  Lo único que se escribe a mano es <span style="color:#c9971a;font-weight:700">la Historia que dicte el profesor</span>.
 </p>
 
-<table class="map">
-  <tr><th class="own">Quién</th><th>Su rama</th><th>Su ticket</th><th>Sus archivos de código</th></tr>
-  <tr><td class="own">Sergio</td><td><code>main</code></td><td>escribe <code>spec.md</code> y los tres <code>hu-viva/*.md</code></td><td>ninguno — especifica y reparte</td></tr>
-  <tr><td class="own">Mateo</td><td><code>feature/hu-viva-ui</code></td><td><code>specs/001-ai-media-generator/hu-viva/mateo.md</code></td><td><code>app/**/page.jsx</code>, <code>components/**</code></td></tr>
-  <tr><td class="own">Johan</td><td><code>feature/hu-viva-api</code></td><td><code>specs/001-ai-media-generator/hu-viva/johan.md</code></td><td><code>app/api/**/route.js</code></td></tr>
-  <tr><td class="own">Tomás</td><td><code>feature/hu-viva-datos</code></td><td><code>specs/001-ai-media-generator/hu-viva/tomas.md</code></td><td><code>lib/**</code>, <code>test/**</code></td></tr>
-  <tr><td class="own">Santiago</td><td><code>main</code></td><td>ninguno</td><td>merge, build y despliegue</td></tr>
+<table>
+  <tr><th class="own">Quién</th><th>Su rama</th><th>Su fase</th><th>Archivos que le pertenecen</th></tr>
+  <tr><td class="own">Sergio</td><td><code>main</code></td><td>reparte</td><td><code>spec.md</code>, <code>tasks.md</code></td></tr>
+  <tr><td class="own">Mateo</td><td><code>feature/hu-ui</code></td><td><code>fase 6</code></td><td><code>app/**/page.jsx</code>, <code>components/**</code></td></tr>
+  <tr><td class="own">Johan</td><td><code>feature/hu-api</code></td><td><code>fase 7</code></td><td><code>app/api/**/route.js</code></td></tr>
+  <tr><td class="own">Tomás</td><td><code>feature/hu-datos</code></td><td><code>fase 8</code></td><td><code>lib/**</code>, <code>test/**</code></td></tr>
+  <tr><td class="own">Santiago</td><td><code>main</code></td><td>merge y deploy</td><td>—</td></tr>
 </table>
-<p class="sub" style="margin:1.2mm 0 2.5mm">
-  Igual que en <code>tasks.md</code>: ningún archivo de código aparece en dos filas, y por eso las tres ramas
-  corren a la vez. Mateo, Johan y Tomás <strong>no escriben specs</strong> — abren su ticket y lo implementan.
-</p>
 
-<h2>Paso 0 — 20 minutos antes, los cinco</h2>
-<div class="split">
-  <div>
-    <pre><span class="k">cd</span> <span class="a">~/Documents/web/speckit-ai-generator</span>
+<div class="block">
+  <h2>Paso 0 · los cinco <span class="when">20 minutos antes de clase</span></h2>
+  <div class="split">
+    <div>
+      <pre><span class="k">cd</span> <span class="a">~/Documents/web/speckit-ai-generator</span>
 <span class="k">git</span> <span class="a">checkout</span> main
 <span class="k">git</span> <span class="a">pull</span> origin main
 <span class="k">npm</span> <span class="a">install</span>
-<span class="k">npm</span> <span class="a">test</span>   <span class="c"># debe decir 0 failed</span></pre>
-  </div>
-  <div>
-    <p><span class="who">Santiago</span>, además:</p>
-    <pre><span class="k">npm</span> <span class="a">run</span> smoke <span class="s">https://ia-generator-openspec.vercel.app</span></pre>
-    <p>Deja el panel de Vercel abierto y la URL cargada en el celular.</p>
+<span class="k">npm</span> <span class="a">test</span>   <span class="c"># tiene que decir 0 failed</span></pre>
+    </div>
+    <div>
+      <p><span class="who">Santiago</span>, además — deja el panel de Vercel abierto y la URL cargada en el celular:</p>
+      <pre><span class="k">npm</span> <span class="a">run</span> smoke <span class="s">https://ia-generator-openspec.vercel.app</span></pre>
+    </div>
   </div>
 </div>
 
-<h2 style="margin-top:3.5mm">Paso 1 — <span class="who">Sergio</span> especifica y reparte <span style="font-weight:400;color:var(--dim);font-size:8.4pt">· ≈ 5 min · rama <code>main</code></span></h2>
-<p>Es la Fase 1 de siempre: <strong class="red">bloquea a todos</strong>. Nadie crea su rama hasta que este push termine.
-Arranca en <code>main</code> al día — <code>git checkout main && git pull origin main</code>.</p>
-
-<p><strong>1.1 — Registra la Historia.</strong> Pega esto en el agente, con las historias literales del profesor:</p>
-<pre>/speckit-specify Agrega dos User Stories nuevas al final de la seccion User Scenarios de
-specs/001-ai-media-generator/spec.md, numeradas User Story 5 y User Story 6.
+<div class="block">
+  <h2><span class="who">Paso 1 · Sergio</span> mete la Historia y reparte las fases <span class="when">≈ 2 min · rama <code>main</code></span></h2>
+  <pre><span class="k">git</span> <span class="a">checkout</span> main
+<span class="k">git</span> <span class="a">pull</span> origin main</pre>
+  <p><strong>1.1</strong> — la Historia entra al spec. Pega esto con las historias literales del profesor:</p>
+  <pre><span class="k">/speckit-specify</span> Agrega dos User Stories nuevas al final de la seccion User Scenarios
+de specs/001-ai-media-generator/spec.md, numeradas User Story 5 y User Story 6.
 HU 5: "<span class="fill">historia literal que dictó el profesor</span>"
 HU 6: "<span class="fill">segunda historia literal</span>"
-Cada una con sus Acceptance Scenarios numerados en formato Given/When/Then.
+Cada una con sus Acceptance Scenarios numerados, en formato Given/When/Then.
 NO crees una feature nueva. NO corras create-new-feature.sh. NO cambies de rama.
 NO toques plan.md ni tasks.md. Solo edita ese spec.md que ya existe.</pre>
+  <p><strong>1.2</strong> — el reparto. Este prompt se pega tal cual, sin cambiar nada:</p>
+  <pre>Agrega al final de specs/001-ai-media-generator/tasks.md tres fases nuevas para las
+User Stories 5 y 6. No regeneres el archivo ni toques las fases 1 a 5.
 
-<p><strong>1.2 — Reparte los tickets.</strong> Mismo corte de propiedad que las Fases 2, 3 y 4:</p>
-<pre>/speckit-tasks Escribe los tres tickets de la HU en vivo en
-specs/001-ai-media-generator/hu-viva/: mateo.md, johan.md y tomas.md. Solo esos tres archivos.
+## Fase 6 — HU en vivo · pantallas   Owns: app/**/page.jsx, components/**
+## Fase 7 — HU en vivo · API        Owns: app/api/**/route.js
+## Fase 8 — HU en vivo · datos      Owns: lib/**, test/**
 
-Reparte las User Stories 5 y 6 de spec.md con el mismo corte de propiedad que las Fases
-2, 3 y 4 de tasks.md: mateo -> app/**/page.jsx y components/**, johan -> app/api/**/route.js,
-tomas -> lib/** y test/**.
-
-Cada archivo lleva cuatro secciones:
-1. Historia — la parte de la HU que le toca, textual desde spec.md.
-2. Criterios de Aceptacion — numerados CA-1, CA-2, CA-3, en formato Dado / Cuando / Entonces.
-3. Plan — la lista exacta de archivos que va a crear o modificar, y por que cada uno.
-4. Tasks — numeradas, y cada una dice que CA cubre.
-
-Reglas: ningun archivo de codigo puede aparecer en dos secciones Plan. No toques plan.md
-ni tasks.md. Si la Historia guarda datos, van a MongoDB por lib/db.js, nunca en memoria.
-Si el reparto no cierra, parate y dimelo antes de escribir.</pre>
-
-<p><strong>1.3 — Sube las cuatro cosas.</strong> Hasta que esto no esté arriba, los demás no tienen ticket. Cuando el push termine, dilo en voz alta:</p>
-<pre><span class="k">git</span> <span class="a">add</span> specs/001-ai-media-generator/spec.md specs/001-ai-media-generator/hu-viva/
-<span class="k">git</span> <span class="a">commit</span> <span class="f">-m</span> <span class="s">"HU en vivo: User Stories 5 y 6, y los tres tickets repartidos"</span>
+Reglas: ningun archivo puede aparecer en dos fases. Numera las tareas desde T040.
+Cada tarea dice que Acceptance Scenario cubre, con la etiqueta [US5-2], y es test-first:
+primero la prueba, nombrada it("US5-2: ..."), despues el codigo.
+Si una HU no da trabajo para alguna fase, deja esa fase con una sola tarea que lo diga.</pre>
+  <pre><span class="k">git</span> <span class="a">add</span> specs/001-ai-media-generator/
+<span class="k">git</span> <span class="a">commit</span> <span class="f">-m</span> <span class="s">"HU en vivo: User Stories 5 y 6 y sus fases 6, 7 y 8"</span>
 <span class="k">git</span> <span class="a">push</span> origin main</pre>
+  <p>Después dice en voz alta: <strong>«fase 6 Mateo, fase 7 Johan, fase 8 Tomás — arranquen»</strong>.</p>
+</div>
 
-<h2 class="newpage">Paso 2 — <span class="who">Mateo, Johan y Tomás</span>, cada uno en su máquina <span style="font-weight:400;color:var(--dim);font-size:8.4pt">· ≈ 5 min</span></h2>
-
-<div class="step">
-  <p><strong>2.1 — Crea tu rama</strong>, solo cuando Sergio haya dicho que ya está arriba. El <code>pull</code> es lo que te trae tu ticket. Copia solo tu columna:</p>
+<div class="block">
+  <h2><span class="who">Paso 2 · Mateo, Johan y Tomás</span> <span class="when">≈ 6 min · cada uno en su máquina</span></h2>
+  <p>Copia solo tu columna, de arriba abajo. El agente hace el resto:</p>
   <div class="three">
     <pre><span class="name">MATEO</span><span class="k">git</span> <span class="a">checkout</span> main
 <span class="k">git</span> <span class="a">pull</span> origin main
-<span class="k">git</span> <span class="a">checkout</span> <span class="f">-b</span> feature/hu-viva-ui</pre>
+<span class="k">git</span> <span class="a">checkout</span> <span class="f">-b</span> feature/hu-ui
+
+<span class="k">/speckit-implement</span> <span class="a">fase 6</span>
+
+<span class="k">npm</span> <span class="a">test</span>
+<span class="k">git</span> <span class="a">add</span> <span class="f">-A</span>
+<span class="k">git</span> <span class="a">commit</span> <span class="f">-m</span> <span class="s">"feat: HU en vivo pantallas"</span>
+<span class="k">git</span> <span class="a">push</span> <span class="f">-u</span> origin feature/hu-ui</pre>
     <pre><span class="name">JOHAN</span><span class="k">git</span> <span class="a">checkout</span> main
 <span class="k">git</span> <span class="a">pull</span> origin main
-<span class="k">git</span> <span class="a">checkout</span> <span class="f">-b</span> feature/hu-viva-api</pre>
+<span class="k">git</span> <span class="a">checkout</span> <span class="f">-b</span> feature/hu-api
+
+<span class="k">/speckit-implement</span> <span class="a">fase 7</span>
+
+<span class="k">npm</span> <span class="a">test</span>
+<span class="k">git</span> <span class="a">add</span> <span class="f">-A</span>
+<span class="k">git</span> <span class="a">commit</span> <span class="f">-m</span> <span class="s">"feat: HU en vivo API"</span>
+<span class="k">git</span> <span class="a">push</span> <span class="f">-u</span> origin feature/hu-api</pre>
     <pre><span class="name">TOMÁS</span><span class="k">git</span> <span class="a">checkout</span> main
 <span class="k">git</span> <span class="a">pull</span> origin main
-<span class="k">git</span> <span class="a">checkout</span> <span class="f">-b</span> feature/hu-viva-datos</pre>
+<span class="k">git</span> <span class="a">checkout</span> <span class="f">-b</span> feature/hu-datos
+
+<span class="k">/speckit-implement</span> <span class="a">fase 8</span>
+
+<span class="k">npm</span> <span class="a">test</span>
+<span class="k">git</span> <span class="a">add</span> <span class="f">-A</span>
+<span class="k">git</span> <span class="a">commit</span> <span class="f">-m</span> <span class="s">"feat: HU en vivo datos"</span>
+<span class="k">git</span> <span class="a">push</span> <span class="f">-u</span> origin feature/hu-datos</pre>
   </div>
+  <p>
+    Es <code>/speckit-implement</code>, <strong>no</strong> <code>/implement</code>, y siempre con la fase — sin argumento el agente construye todo el backlog.
+    <strong class="red">Si <code>npm test</code> sale rojo, no hagas push:</strong> dile al agente cuál prueba falla, que la arregle y vuelva a correr <code>npm test</code>.
+    Cuando tu push termine, anúncialo en voz alta.
+  </p>
 </div>
 
-<div class="step long">
-  <p><strong>2.2 — Abre tu ticket.</strong> Ya está escrito y ya está en tu rama. Cambia <span style="color:var(--org);font-weight:700">mateo</span> por <span style="color:var(--org);font-weight:700">johan</span> o <span style="color:var(--org);font-weight:700">tomas</span> según quién seas:</p>
-  <pre><span class="k">cat</span> specs/001-ai-media-generator/hu-viva/<span class="fill">mateo</span>.md</pre>
-  <p>Léelo entero antes de pedirle nada al agente. <strong>Plan</strong> dice exactamente qué archivos puedes tocar; <strong>Tasks</strong> dice qué CA cubre cada una. Si algo no cuadra, díselo a Sergio ahora — <strong class="red">tú no editas el ticket</strong>.</p>
-
-  <p><strong>2.3 — Implementa test-first</strong> (misma sustitución de nombre):</p>
-  <pre>Implementa specs/001-ai-media-generator/hu-viva/<span class="fill">mateo</span>.md, test-first:
-por cada Criterio de Aceptacion, primero la prueba que falla y despues el codigo que la pasa.
-
-Nombra cada prueba empezando por su criterio: it("CA-2: ...").
-Toca unicamente los archivos de la seccion Plan de ese documento. Ninguno mas.
-NO edites ese .md, ni spec.md, ni plan.md, ni tasks.md: el ticket ya esta cerrado.
-Si un Criterio de Aceptacion esta mal o te falta un archivo, parate y dimelo.
-Al terminar corre npm test y dejalo en verde.</pre>
-  <p><strong>2.4 — Prueba, commit y push.</strong> Copia solo tu columna:</p>
-  <div class="three">
-    <pre><span class="name">MATEO</span><span class="k">npm</span> <span class="a">test</span>
-<span class="k">git</span> <span class="a">add</span> <span class="f">-A</span>
-<span class="k">git</span> <span class="a">commit</span> <span class="f">-m</span> <span class="s">"feat: HU viva UI (CA-1 a CA-3)"</span>
-<span class="k">git</span> <span class="a">push</span> <span class="f">-u</span> origin feature/hu-viva-ui</pre>
-    <pre><span class="name">JOHAN</span><span class="k">npm</span> <span class="a">test</span>
-<span class="k">git</span> <span class="a">add</span> <span class="f">-A</span>
-<span class="k">git</span> <span class="a">commit</span> <span class="f">-m</span> <span class="s">"feat: HU viva API (CA-1 a CA-3)"</span>
-<span class="k">git</span> <span class="a">push</span> <span class="f">-u</span> origin feature/hu-viva-api</pre>
-    <pre><span class="name">TOMÁS</span><span class="k">npm</span> <span class="a">test</span>
-<span class="k">git</span> <span class="a">add</span> <span class="f">-A</span>
-<span class="k">git</span> <span class="a">commit</span> <span class="f">-m</span> <span class="s">"feat: HU viva datos (CA-1 a CA-3)"</span>
-<span class="k">git</span> <span class="a">push</span> <span class="f">-u</span> origin feature/hu-viva-datos</pre>
-  </div>
-  <p><strong class="red">Si <code>npm test</code> sale rojo, no hagas push.</strong> Dile al agente cuál CA falla, que lo arregle y vuelva a correr <code>npm test</code>. Cuando tu push termine, dilo en voz alta.</p>
-</div>
-
-<h2 style="margin-top:3.5mm">Paso 3 — <span class="who">Santiago</span> integra y despliega <span style="font-weight:400;color:var(--dim);font-size:8.4pt">· ≈ 2 min · rama <code>main</code></span></h2>
-<div class="split">
-  <div>
-    <p>Solo cuando los tres hayan dicho que subieron:</p>
-    <pre><span class="k">git</span> <span class="a">checkout</span> main
+<div class="block">
+  <h2><span class="who">Paso 3 · Santiago</span> junta las tres ramas y despliega <span class="when">≈ 2 min · rama <code>main</code></span></h2>
+  <div class="split">
+    <div>
+      <p>Solo cuando los tres hayan dicho que subieron:</p>
+      <pre><span class="k">git</span> <span class="a">checkout</span> main
 <span class="k">git</span> <span class="a">pull</span> origin main
-<span class="k">git</span> <span class="a">fetch</span> origin</pre>
-    <p>Un merge por línea. Espera a que termine cada uno:</p>
-    <pre><span class="k">git</span> <span class="a">merge</span> <span class="f">--no-ff</span> origin/feature/hu-viva-ui
-<span class="k">git</span> <span class="a">merge</span> <span class="f">--no-ff</span> origin/feature/hu-viva-api
-<span class="k">git</span> <span class="a">merge</span> <span class="f">--no-ff</span> origin/feature/hu-viva-datos</pre>
-    <p>Si un merge se enreda: <code>git merge --abort</code> y reintenta solo esa rama.</p>
-  </div>
-  <div>
-    <p>Con los tres adentro:</p>
-    <pre><span class="k">npm</span> <span class="a">test</span>
+<span class="k">git</span> <span class="a">fetch</span> origin
+<span class="k">git</span> <span class="a">merge</span> <span class="f">--no-ff</span> origin/feature/hu-ui
+<span class="k">git</span> <span class="a">merge</span> <span class="f">--no-ff</span> origin/feature/hu-api
+<span class="k">git</span> <span class="a">merge</span> <span class="f">--no-ff</span> origin/feature/hu-datos</pre>
+      <p>Uno por línea, esperando a que termine cada uno. Si un merge se enreda: <code>git merge --abort</code> y reintenta solo esa rama.</p>
+    </div>
+    <div>
+      <p>Con los tres adentro:</p>
+      <pre><span class="k">npm</span> <span class="a">test</span>
 <span class="k">npm</span> <span class="a">run</span> build
 <span class="k">git</span> <span class="a">push</span> origin main</pre>
-    <p>Ese push despliega en Vercel solo. Mientras construye, proyecta el grafo:</p>
-    <pre><span class="k">git</span> <span class="a">log</span> <span class="f">--graph --oneline -15</span></pre>
+      <p>Ese push despliega en Vercel solo. Mientras construye, proyecta el grafo de ramas:</p>
+      <pre><span class="k">git</span> <span class="a">log</span> <span class="f">--graph --oneline -15</span></pre>
+    </div>
   </div>
 </div>
 
-<h2 style="margin-top:3.5mm">Paso 4 — <span class="who">Todos</span> validan sobre el despliegue <span style="font-weight:400;color:var(--dim);font-size:8.4pt">· ≈ 1 min</span></h2>
-<ol>
-  <li><span class="who">Santiago</span> espera el check verde del deploy en Vercel (1–2 min) y corre:
-    <pre style="margin-top:1mm"><span class="k">npm</span> <span class="a">run</span> smoke <span class="s">https://ia-generator-openspec.vercel.app</span></pre></li>
-  <li>Todos abren <code>https://ia-generator-openspec.vercel.app</code> en el celular, con datos móviles, y recorren la Historia nueva de punta a punta.</li>
-  <li>Si preguntan por la trazabilidad, el dueño abre su <code>hu-viva/<span style="color:var(--org)">nombre</span>.md</code>, señala el CA y corre esa sola prueba:
-    <pre style="margin-top:1mm"><span class="k">npm</span> <span class="a">test</span> <span class="f">--</span> <span class="f">-t</span> <span class="s">"CA-2"</span></pre></li>
-</ol>
+<div class="block">
+  <h2><span class="who">Paso 4 · todos</span> validan sobre el despliegue <span class="when">≈ 1 min</span></h2>
+  <ol>
+    <li><span class="who">Santiago</span> espera el check verde del deploy en Vercel (1–2 min) y corre:
+      <pre style="margin-top:1mm"><span class="k">npm</span> <span class="a">run</span> smoke <span class="s">https://ia-generator-openspec.vercel.app</span></pre></li>
+    <li>Todos abren <code>https://ia-generator-openspec.vercel.app</code> en el celular, con datos móviles, y recorren la Historia nueva de punta a punta.</li>
+    <li>Si preguntan de dónde salió el código, el dueño abre <code>tasks.md</code> en su fase, señala la etiqueta <code>[US5-2]</code> y corre esa sola prueba:
+      <pre style="margin-top:1mm"><span class="k">npm</span> <span class="a">test</span> <span class="f">--</span> <span class="f">-t</span> <span class="s">"US5-2"</span></pre></li>
+  </ol>
+</div>
