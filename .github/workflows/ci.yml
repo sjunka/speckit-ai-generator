@@ -1,11 +1,12 @@
 name: CI
 
 # Un push a una rama con PR abierto disparaba dos corridas idénticas (una por
-# `push`, otra por `pull_request`). Con `push` limitado a main, cada commit
-# corre una sola vez: en su PR mientras se revisa, y en main al fusionar.
+# `push`, otra por `pull_request`). Con `push` limitado a las ramas de larga
+# vida, cada commit corre una sola vez: en su PR mientras se revisa, y en
+# main/develop al fusionar.
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
 
 # Si llegan dos commits seguidos, la corrida vieja se cancela sola.
