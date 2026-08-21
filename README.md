@@ -350,6 +350,41 @@ Para que nadie se frene por miedo:
 
 ---
 
+## Las cuatro cuentas y las ocho llaves
+
+El T030 es el único ticket que se hace a mano. Copia `.env.local.example` a
+`.env.local` y llena estos valores. **Nunca commitees `.env.local`** — el
+`.gitignore` ya lo bloquea, y solo deja pasar el `.example`.
+
+| Servicio | Qué crear | Qué variables llena |
+|---|---|---|
+| **Clerk** | Una aplicación con Google y email como métodos de ingreso | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` |
+| **MongoDB Atlas** | Un clúster gratuito M0 con la base de datos `ia-generator` | `MONGODB_URI` |
+| **Vercel Blob** | Un store y su token de lectura-escritura | `BLOB_READ_WRITE_TOKEN` |
+| **Higgsfield** | Llave y secreto, con los ids de modelo tomados de la página de explore | `HIGGSFIELD_API_URL`, `HIGGSFIELD_API_KEY`, `HIGGSFIELD_API_SECRET` |
+
+Dos ajustes que no son una llave y sin los cuales el dashboard no abre:
+
+- En Clerk, al usuario dueño ponle `publicMetadata.role = "admin"`, y su id de
+  usuario va en `OWNER_ID`. El guardia del dashboard mira ese rol; `OWNER_ID` es
+  el que usa `/api/settings`.
+- En Atlas, *Network Access* tiene que permitir `0.0.0.0/0`. Vercel Hobby no
+  tiene IP de salida fija, así que una lista blanca por IP deja la app sin base
+  de datos en producción.
+
+Las mismas ocho variables van en Vercel, en *Project Settings → Environment
+Variables*, antes del primer deploy.
+
+**La comprobación a mano**, con `.env.local` lleno y `npm run dev` corriendo:
+
+1. `/dashboard` abre con el usuario admin y muestra los cuatro elementos.
+2. Con un segundo usuario que no sea admin, `/dashboard` responde 404 y no
+   filtra ningún valor.
+3. Apaga el interruptor: la siguiente generación devuelve `503` y la pantalla de
+   captura muestra el banner de pausa, no un error.
+4. Vuelve a encenderlo: la generación se reanuda, sin redesplegar.
+
+
 ## Los 39 tickets
 
 | Ticket | Qué hace | Fase | Quién |
