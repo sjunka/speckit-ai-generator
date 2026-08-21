@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(chmod +x scripts/setup-branch-protection.sh)",
+      "Bash(python3 -c ' *)"
+    ]
+  }
+}

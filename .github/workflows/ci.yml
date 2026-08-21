@@ -1,17 +1,45 @@
 name: CI
 
 on:
-  push:
   pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+  merge_group:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test:
+  conflict-check:
+    name: Compatibilidad con la rama destino
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verificar que no haya conflictos de merge
+        run: |
+          git config user.name "ci"
+          git config user.email "ci@local"
+          git fetch origin "${{ github.base_ref }}"
+          if ! git merge --no-commit --no-ff "origin/${{ github.base_ref }}"; then
+            echo "::error::La rama tiene conflictos con ${{ github.base_ref }}. Actualízala antes de mergear."
+            exit 1
+          fi
+          git merge --abort || true
+
+  build:
+    name: Lint, tests y build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: npm
       - run: npm ci
       - run: npm run lint
       - run: npx -y react-doctor@latest . --score > /tmp/score.txt
