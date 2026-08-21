@@ -7,7 +7,7 @@ set -euo pipefail
 REPO="$(gh repo view --json nameWithOwner -q .nameWithOwner)"
 echo "Configurando protecciones en $REPO"
 
-# --- develop: sin push directo, CI obligatorio, sin approvals ---
+# --- develop: sin push directo, CI obligatorio, merge manual sin approvals ---
 gh api -X PUT "repos/$REPO/branches/develop/protection" \
   -H "Accept: application/vnd.github+json" \
   --input - <<'JSON'
@@ -49,7 +49,6 @@ gh api -X PUT "repos/$REPO/branches/main/protection" \
 }
 JSON
 
-# Necesario para que el auto-merge de develop funcione
-gh api -X PATCH "repos/$REPO" -f allow_auto_merge=true -f allow_squash_merge=true >/dev/null
+gh api -X PATCH "repos/$REPO" -f allow_squash_merge=true >/dev/null
 
 echo "Listo. main y develop solo aceptan cambios vía Pull Request."
