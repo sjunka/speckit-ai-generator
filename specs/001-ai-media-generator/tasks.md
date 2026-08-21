@@ -158,12 +158,12 @@ of committing it.
 
 *Runs after Fases 2, 4 and 5. Owns nothing new.*
 
-- [ ] T031 Merge the branches. Expected conflicts: `package.json` where a phase added a dependency (obvious resolution), plus `lib/settings.js`, `lib/models.js` and `lib/db.js` — each exists twice, once as the other phase's stub and once as its real implementation. Keep the real implementation (Fase 4's `settings.js`/`models.js`, Fase 3's `db.js`), discard the stub
-- [ ] T032 **Reconcile `test/msw/handlers.js` against the routes that actually shipped.** This is the one real risk in a parallel build: Fase 2 tested against handlers, not against Fase 3's code, so a handler that disagrees with its route gives green tests and a broken app. Walk the plan's HTTP table field by field
-- [ ] T033 Run `npm run lint && npm test && npm run build`. Fix what the merge broke and nothing else
-- [ ] T034 Delete what the merge orphaned — mocks for modules that now exist, stub files, unused imports. Do not touch code the merge did not orphan
-- [ ] T035 [P] Add `e2e/landing.spec.js` (the landing page loads and its call to action reaches sign-in) and `playwright.config.js` pointing at `npm run dev`
-- [ ] T036 Run `react-doctor` over the merged repository and raise the committed `.react-doctor-baseline` to the merged score. Never lower it. Confirm CI is green
+- [X] T031 Merge the branches. Expected conflicts: `package.json` where a phase added a dependency (obvious resolution), plus `lib/settings.js`, `lib/models.js` and `lib/db.js` — each exists twice, once as the other phase's stub and once as its real implementation. Keep the real implementation (Fase 4's `settings.js`/`models.js`, Fase 3's `db.js`), discard the stub
+- [X] T032 **Reconcile `test/msw/handlers.js` against the routes that actually shipped.** This is the one real risk in a parallel build: Fase 2 tested against handlers, not against Fase 3's code, so a handler that disagrees with its route gives green tests and a broken app. Walk the plan's HTTP table field by field
+- [X] T033 Run `npm run lint && npm test && npm run build`. Fix what the merge broke and nothing else
+- [X] T034 Delete what the merge orphaned — mocks for modules that now exist, stub files, unused imports. Do not touch code the merge did not orphan
+- [X] T035 [P] Add `e2e/landing.spec.js` (the landing page loads and its call to action reaches sign-in) and `playwright.config.js` pointing at `npm run dev`
+- [X] T036 Run `react-doctor` over the merged repository and raise the committed `.react-doctor-baseline` to the merged score. Never lower it. Confirm CI is green
 - [ ] T037 Walk the product by hand on a phone: landing → sign-in → photo → image → video → download, without a keyboard except at sign-in. Install it to the home screen on iOS and Android and confirm it opens without browser chrome
 - [ ] T038 Run the exactness check: copy `scripts/build-appendix.mjs` into the repository, run `npm run docs:appendix`, then `diff docs/REPLICATION-APPENDIX.md <the original appendix>`. Every difference is either a file that is wrong or a deliberate change — there is no third case, so resolve each one explicitly. An empty diff is the definition of done
 - [ ] T039 Deploy. Vercel's Git integration handles it — put the eight environment variables in the project settings and let a green CI run gate the deploy. Do not hand-roll a deploy step
