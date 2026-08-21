@@ -60,7 +60,7 @@
 <table>
   <tr><th class="own">Quién</th><th>Su rama</th><th>Su fase</th><th>Archivos que le pertenecen — nadie más los toca</th></tr>
   <tr><td class="own">Sergio</td><td><code>main</code></td><td>reparte</td><td><code>spec.md</code>, <code>tasks.md</code></td></tr>
-  <tr><td class="own">Mateo</td><td><code>feature/hu-ui</code></td><td><code>fase 6</code></td><td><code>app/*/page.jsx</code>, <code>components/**</code>, <code>hooks/**</code></td></tr>
+  <tr><td class="own">Mateo</td><td><code>feature/hu-ui</code></td><td><code>fase 6</code></td><td><code>app/**/page.jsx</code>, <code>components/**</code>, <code>hooks/**</code></td></tr>
   <tr><td class="own">Johan</td><td><code>feature/hu-api</code></td><td><code>fase 7</code></td><td><code>app/api/**/route.js</code> y sus <code>.test.js</code></td></tr>
   <tr><td class="own">Tomás</td><td><code>feature/hu-datos</code></td><td><code>fase 8</code></td><td><code>test/**</code>, <code>lib/**</code></td></tr>
   <tr><td class="own">Santiago</td><td><code>main</code></td><td>merge y deploy</td><td><code>scripts/**</code></td></tr>
@@ -76,11 +76,14 @@
 <span class="k">npm</span> <span class="a">install</span>
 <span class="k">npm</span> <span class="a">test</span>   <span class="c"># 0 failed</span>
 <span class="k">npx</span> <span class="f">-y</span> react-doctor@latest . <span class="f">--score</span>   <span class="c"># 100</span></pre>
-      <p>La última línea baja el paquete: si no la corres ahora, en vivo se tarda un minuto largo. Y ese <strong>100</strong> es el número que hay que devolver al final.</p>
+      <p>La última línea baja el paquete: si no la corres ahora, en vivo se tarda un minuto largo. Hoy da <strong>100</strong>; el piso del CI es <strong>95</strong> (<code>.react-doctor-baseline</code>). Por debajo de 95 no despliega.</p>
     </div>
     <div>
       <p><span class="who">Santiago</span>, además — deja el panel de Vercel abierto y la URL cargada en el celular:</p>
       <pre><span class="k">npm</span> <span class="a">run</span> smoke <span class="s">https://ia-generator-openspec.vercel.app</span></pre>
+      <div class="warn" style="margin-top:1.4mm">
+        <b>Este smoke es la puerta de entrada, no un trámite.</b> Si <code>/capture</code> contesta <code>404</code>, lo desplegado es viejo: no tiene la línea base y la demo arranca rota. Se arregla desplegando <code>main</code> otra vez, <strong>no en clase</strong>. Verifica también en Vercel que la <em>Production Branch</em> del proyecto sea <code>main</code>.
+      </div>
       <p>Y cada quien deja abierto <code>specs/001-ai-media-generator/tasks.md</code> en la fase que le toca: es lo que se señala cuando pregunten de dónde salió el código.</p>
     </div>
   </div>
@@ -113,7 +116,7 @@ NO toques plan.md ni tasks.md. Solo edita ese spec.md que ya existe.</pre>
 las User Stories que acabamos de agregar. No regeneres el archivo ni toques las
 fases 1 a 5. Numera las tareas desde T040.
 
-## Fase 6 — pantallas   Owns: app/*/page.jsx, components/**, hooks/**
+## Fase 6 — pantallas   Owns: app/**/page.jsx, components/**, hooks/**
 ## Fase 7 — API         Owns: app/api/**/route.js y sus .test.js
 ## Fase 8 — datos       Owns: test/**, lib/**
 ## Fase 9 — merge       Owns: scripts/**
@@ -124,9 +127,11 @@ Ese contrato no se negocia despues.
 
 Reglas: ningun archivo puede aparecer en dos fases. Cada tarea dice que
 Acceptance Scenario cubre, con la etiqueta [US5-2], y es test-first: primero la
-prueba, nombrada it("US5-2: ..."), despues el codigo. Ninguna fase puede
-importar un simbolo nuevo de un archivo que le pertenece a otra fase — si lo
-necesita, lo define en su propio archivo.
+prueba, nombrada it("US5-2: ..."), despues el codigo. Cada tarea manda hacer
+commit de la prueba en rojo antes de escribir el codigo, con el mensaje
+test: US5-2 ..., para que el historial demuestre el test-first.
+Ninguna fase puede importar un simbolo nuevo de un archivo que le pertenece a
+otra fase — si lo necesita, lo define en su propio archivo.
 Si una HU no da trabajo para alguna fase, deja esa fase con una sola tarea que
 lo diga.</pre>
   <pre><span class="k">git</span> <span class="a">add</span> specs/001-ai-media-generator/
@@ -175,14 +180,14 @@ lo diga.</pre>
   </div>
   <p>
     Es <code>/speckit-implement</code>, <strong>no</strong> <code>/implement</code>, y siempre con la fase — sin argumento el agente construye todo el backlog.
-    <strong class="red">Rojo en <code>npm test</code>, o un score por debajo de 100, es no-push:</strong> dile al agente qué falló, que lo arregle y vuelva a correr los dos.
+    <strong class="red">Rojo en <code>npm test</code>, o un score por debajo de 95, es no-push:</strong> dile al agente qué falló, que lo arregle y vuelva a correr los dos.
     Cuando tu push termine, anúncialo en voz alta.
   </p>
   <div class="warn">
     <b>Lo que se rompió en el ensayo, y lo que hay que decirle al agente si pasa.</b>
     <ul>
       <li><b>Pantalla nueva que lee datos al montar</b> — las pruebas viejas de esa pantalla sustituyen <code>fetch</code> <em>por orden</em>, y la lectura nueva se come la primera respuesta encolada. Cinco pruebas que nada tienen que ver se ponen rojas. Se arregla en ese mismo archivo: que el doble responda <b>por método</b>, no por turno.</li>
-      <li><b>Score que baja de 100</b> — <code>react-doctor</code> castiga un <code>fetch</code> dentro de un <code>useEffect</code> en un <code>page.jsx</code>, y un <code>&lt;div onClick&gt;</code> haciendo de modal. Sácale el <code>fetch</code> a un hook en <code>hooks/</code> y usa <code>&lt;dialog&gt;</code>. También castiga <code>.filter().map()</code> encadenados — un <code>flatMap</code>. Con el baseline en 100, una sola advertencia deja el CI rojo y <b>no despliega</b>.</li>
+      <li><b>Score que baja de 100</b> — <code>react-doctor</code> castiga un <code>fetch</code> dentro de un <code>useEffect</code> en un <code>page.jsx</code>, y un <code>&lt;div onClick&gt;</code> haciendo de modal. Sácale el <code>fetch</code> a un hook en <code>hooks/</code> y usa <code>&lt;dialog&gt;</code>. También castiga <code>.filter().map()</code> encadenados — un <code>flatMap</code>. El baseline está en 95, así que hay margen para una advertencia, no para tres — y en el ensayo salieron justo tres.</li>
       <li><b>Nombres accesibles que chocan</b> — dos imágenes con <code>alt</code> parecido, o un botón nuevo cuyo nombre accesible sale de su <code>alt</code>, rompen <code>getByRole</code> de pruebas viejas. Ponle <code>aria-label</code> explícito al botón nuevo.</li>
       <li><b>Helper de pruebas que no exporta lo nuevo</b> — si el archivo de la ruta tiene un <code>load()</code> que devuelve <code>{ POST, ...mocks }</code>, agregar un <code>GET</code> sin agregarlo ahí falla con <code>GET is not a function</code> y parece un error de la ruta.</li>
       <li><b>Importar algo que otro está escribiendo ahora</b> — nadie importa un símbolo nuevo de <code>test/fixtures.js</code> ni de un archivo de otra fase. Datos de ejemplo, en tu propio archivo.</li>
@@ -210,7 +215,7 @@ lo diga.</pre>
 <span class="k">npx</span> <span class="f">-y</span> react-doctor@latest . <span class="f">--score</span>
 <span class="k">npm</span> <span class="a">run</span> build
 <span class="k">git</span> <span class="a">push</span> origin main</pre>
-      <p>Ese push despliega en Vercel solo. Mientras construye, proyecta el grafo de ramas:</p>
+      <p>Ese push despliega en Vercel solo. Los tres <code>feature/*</code> también disparan un preview cada uno y en el plan Hobby se construyen de a uno: <strong>el único que importa es el de <code>main</code></strong>, no esperes a los otros tres. Mientras construye, proyecta el grafo de ramas:</p>
       <pre><span class="k">git</span> <span class="a">log</span> <span class="f">--graph --oneline -12</span></pre>
     </div>
   </div>
@@ -223,7 +228,8 @@ lo diga.</pre>
       <pre style="margin-top:1mm"><span class="k">npm</span> <span class="a">run</span> smoke <span class="s">https://ia-generator-openspec.vercel.app</span></pre></li>
     <li>Todos abren <code>https://ia-generator-openspec.vercel.app</code> en el celular, con datos móviles, y recorren la Historia nueva de punta a punta.</li>
     <li>Si preguntan de dónde salió el código, el dueño abre <code>tasks.md</code> en su fase, señala la etiqueta <code>[US5-2]</code> y corre esa sola prueba:
-      <pre style="margin-top:1mm"><span class="k">npm</span> <span class="a">test</span> <span class="f">--</span> <span class="f">-t</span> <span class="s">"US5-2"</span></pre></li>
+      <pre style="margin-top:1mm"><span class="k">npm</span> <span class="a">test</span> <span class="f">--</span> <span class="f">-t</span> <span class="s">"US5-2"</span>   <span class="c"># unas pocas passed, el resto skipped</span></pre>
+      y <code>git log --oneline</code> en su rama, donde el commit <code>test:</code> va antes del código.</li>
     <li>Si preguntan qué criterio de aceptación demuestra esa prueba, se lee el <code>Given/When/Then</code> numerado en <code>spec.md</code>, en la User Story que el profesor acaba de dictar. Ese es el camino completo: <strong>necesidad → spec → tasks → prueba → código → commit → desplegado</strong>.</li>
   </ol>
 </div>
