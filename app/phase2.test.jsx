@@ -50,9 +50,11 @@ describe("Phase 2 capture flow", () => {
     expect(input).toHaveAttribute("accept", "image/*");
     expect(input).toHaveAttribute("capture", "environment");
 
-    const select = screen.getByLabelText("Mood");
+    const select = screen.getByLabelText("Emotion");
     expect(select).toBeInTheDocument();
-    expect(select.value).toBe("I am feeling happy 😊");
+    expect(select.value).toBe("happy");
+    expect([...select.options].map((option) => option.value)).toEqual(["happy", "angry", "sad"]);
+    expect(screen.queryByLabelText("Level")).toBeNull();
     expect(screen.getByRole("link", { name: "Capture" })).toHaveAttribute("href", "/capture");
 
     const file = new File(["hello"], "photo.png", { type: "image/png" });
