@@ -4,17 +4,17 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Nav } from "@/components/Nav";
 import { Card, Button, StatusBadge, Spinner } from "@/components/ui";
-import { PhotoInput, PhotoPreview, HintInput } from "@/components/capture";
+import { PhotoInput, PhotoPreview, EmotionPicker } from "@/components/capture";
 import { GeneratedResult } from "@/components/capture/GeneratedResult";
 import { useElapsedSeconds } from "@/hooks/useElapsedSeconds";
-
-const DEFAULT_MOOD = "I am feeling happy 😊";
+import { EMOTIONS } from "@/lib/emotions.js";
 
 export default function CapturePage() {
   const router = useRouter();
   const [photo, setPhoto] = useState(null);
   const [preview, setPreview] = useState("");
-  const [mood, setMood] = useState(DEFAULT_MOOD);
+  // The screen posts the emotion and the level; the server composes the string.
+  const [feeling, setFeeling] = useState({ emotion: EMOTIONS[0], level: undefined });
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
   const [paused, setPaused] = useState(false);
@@ -41,7 +41,11 @@ export default function CapturePage() {
       const response = await fetch("/api/image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ photo: preview, hint: mood }),
+        body: JSON.stringify({
+          photo: preview,
+          emotion: feeling.emotion,
+          ...(feeling.level ? { level: feeling.level } : {}),
+        }),
       });
 
       if (response.status === 503) {
@@ -97,7 +101,12 @@ export default function CapturePage() {
           <>
             <PhotoInput value={photo} onChange={handlePhotoSelect} disabled={isGenerating || paused} />
             <PhotoPreview src={preview} />
-            <HintInput value={mood} onChange={setMood} />
+            <EmotionPicker
+              emotion={feeling.emotion}
+              level={feeling.level}
+              onChange={setFeeling}
+              disabled={isGenerating || paused}
+            />
           </>
         )}
 
