@@ -122,6 +122,30 @@ describe("POST /api/image", () => {
     expect(collection.docs[0].createdAt).toBeInstanceOf(Date);
   });
 
+  it("records the emotion and a false published flag", async () => {
+    const { POST } = await load();
+
+    await POST(post({ photo: PHOTO_DATA_URL, emotion: "happy" }));
+
+    expect(collection.docs[0]).toMatchObject({ emotion: "happy", isPublic: false });
+  });
+
+  it("records the level for a levelled emotion", async () => {
+    const { POST } = await load();
+
+    await POST(post({ photo: PHOTO_DATA_URL, emotion: "sad", level: "very" }));
+
+    expect(collection.docs[0]).toMatchObject({ emotion: "sad", level: "very" });
+  });
+
+  it("writes no level key at all for a happy record", async () => {
+    const { POST } = await load();
+
+    await POST(post({ photo: PHOTO_DATA_URL, emotion: "happy" }));
+
+    expect(collection.docs[0]).not.toHaveProperty("level");
+  });
+
   it("returns 401 for an anonymous caller and touches no provider", async () => {
     const { POST, auth, generateImage } = await load();
     auth.mockResolvedValue({ userId: null });
