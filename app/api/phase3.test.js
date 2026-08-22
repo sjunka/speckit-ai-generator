@@ -43,8 +43,8 @@ describe("phase 3 backend", () => {
     fakeCollection.updateOne.mockClear();
   });
 
-  it("creates an image record when generation succeeds", async () => {
-    const response = await createImage(makeRequest({ photo: "data:image/png;base64,AAAA", hint: "happy" }));
+  it("creates an image record from an emotion when generation succeeds", async () => {
+    const response = await createImage(makeRequest({ photo: "data:image/png;base64,AAAA", emotion: "happy" }));
     expect(response.status).toBe(200);
     const json = await response.json();
     expect(json.imageUrl).toContain("https://blob.test/");

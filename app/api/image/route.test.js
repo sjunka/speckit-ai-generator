@@ -40,29 +40,77 @@ beforeEach(async () => {
 });
 
 describe("POST /api/image", () => {
-  it("returns 200 with the stored image url for a photo and a hint", async () => {
+  it("returns 200 with the stored image url for a photo and an emotion", async () => {
+    const { POST } = await load();
+
+    const response = await POST(post({ photo: PHOTO_DATA_URL, emotion: "happy" }));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ imageUrl: BLOB_URL });
+  });
+
+  it("sends the composed hint for a happy request, unchanged from 001", async () => {
+    const { POST, generateImage } = await load();
+
+    await POST(post({ photo: PHOTO_DATA_URL, emotion: "happy" }));
+
+    expect(generateImage).toHaveBeenCalledWith(BLOB_URL, "I am feeling happy 😊");
+  });
+
+  it("composes the level into the hint for a levelled emotion", async () => {
+    const { POST, generateImage } = await load();
+
+    await POST(post({ photo: PHOTO_DATA_URL, emotion: "angry", level: "quite" }));
+
+    expect(generateImage).toHaveBeenCalledWith(BLOB_URL, "I am feeling quite angry 😠");
+  });
+
+  it("no longer reads hint from the request body", async () => {
     const { POST, generateImage } = await load();
 
     const response = await POST(post({ photo: PHOTO_DATA_URL, hint: "make it a watercolour" }));
 
-    expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ imageUrl: BLOB_URL });
-    expect(generateImage).toHaveBeenCalledWith(BLOB_URL, "make it a watercolour");
+    expect(response.status).toBe(400);
+    await expect(response.text()).resolves.toBe("Unknown emotion");
+    expect(generateImage).not.toHaveBeenCalled();
   });
 
-  it("generates from the photo alone when there is no hint", async () => {
-    const { POST, generateImage } = await load();
+  it.each([
+    ["Unknown emotion", { emotion: "smug" }],
+    ["Unknown emotion", {}],
+    ["Unknown level", { emotion: "sad", level: "somewhat" }],
+    ["Unknown level", { emotion: "sad" }],
+    ["happy takes no level", { emotion: "happy", level: "very" }],
+  ])("returns 400 '%s' and spends nothing", async (message, body) => {
+    const { POST, generateImage, store } = await load();
 
-    const response = await POST(post({ photo: PHOTO_DATA_URL }));
+    const response = await POST(post({ photo: PHOTO_DATA_URL, ...body }));
 
-    expect(response.status).toBe(200);
-    expect(generateImage.mock.calls[0][1]).toBeUndefined();
+    expect(response.status).toBe(400);
+    await expect(response.text()).resolves.toBe(message);
+    expect(generateImage).not.toHaveBeenCalled();
+    expect(store).not.toHaveBeenCalled();
+    expect(collection.docs).toHaveLength(0);
+  });
+
+  it("returns the 400 rather than the 503 when generation is paused", async () => {
+    const { POST, assertEnabled, generateImage, store } = await load();
+    const paused = new Error("Generation is paused");
+    paused.status = 503;
+    assertEnabled.mockRejectedValue(paused);
+
+    const response = await POST(post({ photo: PHOTO_DATA_URL, emotion: "smug" }));
+
+    expect(response.status).toBe(400);
+    await expect(response.text()).resolves.toBe("Unknown emotion");
+    expect(generateImage).not.toHaveBeenCalled();
+    expect(store).not.toHaveBeenCalled();
   });
 
   it("writes a generations record with the user, kind, status, url and timestamp", async () => {
     const { POST } = await load();
 
-    await POST(post({ photo: PHOTO_DATA_URL }));
+    await POST(post({ photo: PHOTO_DATA_URL, emotion: "happy" }));
 
     expect(collection.docs).toHaveLength(1);
     expect(collection.docs[0]).toMatchObject({
@@ -74,11 +122,35 @@ describe("POST /api/image", () => {
     expect(collection.docs[0].createdAt).toBeInstanceOf(Date);
   });
 
+  it("records the emotion and a false published flag", async () => {
+    const { POST } = await load();
+
+    await POST(post({ photo: PHOTO_DATA_URL, emotion: "happy" }));
+
+    expect(collection.docs[0]).toMatchObject({ emotion: "happy", isPublic: false });
+  });
+
+  it("records the level for a levelled emotion", async () => {
+    const { POST } = await load();
+
+    await POST(post({ photo: PHOTO_DATA_URL, emotion: "sad", level: "very" }));
+
+    expect(collection.docs[0]).toMatchObject({ emotion: "sad", level: "very" });
+  });
+
+  it("writes no level key at all for a happy record", async () => {
+    const { POST } = await load();
+
+    await POST(post({ photo: PHOTO_DATA_URL, emotion: "happy" }));
+
+    expect(collection.docs[0]).not.toHaveProperty("level");
+  });
+
   it("returns 401 for an anonymous caller and touches no provider", async () => {
     const { POST, auth, generateImage } = await load();
     auth.mockResolvedValue({ userId: null });
 
-    const response = await POST(post({ photo: PHOTO_DATA_URL }));
+    const response = await POST(post({ photo: PHOTO_DATA_URL, emotion: "happy" }));
 
     expect(response.status).toBe(401);
     expect(generateImage).not.toHaveBeenCalled();
@@ -90,7 +162,7 @@ describe("POST /api/image", () => {
     paused.status = 503;
     assertEnabled.mockRejectedValue(paused);
 
-    const response = await POST(post({ photo: PHOTO_DATA_URL }));
+    const response = await POST(post({ photo: PHOTO_DATA_URL, emotion: "happy" }));
 
     expect(response.status).toBe(503);
     await expect(response.text()).resolves.toBe("Generation is paused");
@@ -101,7 +173,7 @@ describe("POST /api/image", () => {
     const { POST, generateImage } = await load();
     generateImage.mockRejectedValue(new Error("Image provider returned no image"));
 
-    const response = await POST(post({ photo: PHOTO_DATA_URL }));
+    const response = await POST(post({ photo: PHOTO_DATA_URL, emotion: "happy" }));
 
     expect(response.ok).toBe(false);
     expect(collection.docs).toHaveLength(0);
