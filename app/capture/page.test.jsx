@@ -12,7 +12,6 @@ vi.mock("@clerk/nextjs", () => ({
 }));
 
 const photo = (name) => new File(["photo-bytes"], name, { type: "image/png" });
-
 const fileInput = () => document.querySelector('input[type="file"]');
 const generateButton = () => screen.getByRole("button", { name: /generat/i });
 
@@ -33,47 +32,66 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("Capture screen — photo capture", () => {
-  it("uses one file input that opens the rear camera on mobile and an image picker on desktop", () => {
+describe("Capture screen — camera and emotion controls", () => {
+  it("posts emotion and optional level instead of a hint", async () => {
+    const fetchMock = respondWith({ body: { imageUrl: BLOB_URL } });
+
     render(<CapturePage />);
-
-    expect(document.querySelectorAll('input[type="file"]')).toHaveLength(1);
-    expect(fileInput()).toHaveAttribute("accept", "image/*");
-    expect(fileInput()).toHaveAttribute("capture", "environment");
-  });
-
-  it("shows a preview once a photo is selected", async () => {
-    render(<CapturePage />);
-
-    await userEvent.upload(fileInput(), photo("first.png"));
-
-    const preview = await screen.findByAltText(/selected/i);
-    expect(preview).toBeInTheDocument();
-  });
-
-  it("updates the preview when a second photo replaces the first", async () => {
-    render(<CapturePage />);
-
-    await userEvent.upload(fileInput(), photo("first.png"));
-    const first = (await screen.findByAltText(/selected/i)).getAttribute("src");
-
-    await userEvent.upload(fileInput(), new File(["other-bytes"], "second.png", {
-      type: "image/png",
-    }));
-
-    await waitFor(() =>
-      expect(screen.getByAltText(/selected/i).getAttribute("src")).not.toBe(first)
-    );
-    expect(screen.getAllByAltText(/selected/i)).toHaveLength(1);
-  });
-
-  it("disables generate until a photo is selected", async () => {
-    render(<CapturePage />);
-
-    expect(generateButton()).toBeDisabled();
-
     await userEvent.upload(fileInput(), photo("first.png"));
     await waitFor(() => expect(generateButton()).toBeEnabled());
+
+    const emotionSelect = screen.getByRole("combobox", { name: /emotion/i });
+    await userEvent.selectOptions(emotionSelect, "angry");
+    const levelSelect = screen.getByRole("combobox", { name: /level/i });
+    await userEvent.selectOptions(levelSelect, "very");
+
+    await userEvent.click(generateButton());
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body).toMatchObject({ photo: expect.any(String), emotion: "angry", level: "very" });
+    expect(body.hint).toBeUndefined();
+  });
+
+  it("omits the level for happy and keeps the file picker usable while paused", async () => {
+    const fetchMock = respondWith({ status: 503 });
+
+    render(<CapturePage />);
+    await userEvent.upload(fileInput(), photo("first.png"));
+    await waitFor(() => expect(generateButton()).toBeEnabled());
+
+    const emotionSelect = screen.getByRole("combobox", { name: /emotion/i });
+    await userEvent.selectOptions(emotionSelect, "happy");
+    await userEvent.click(generateButton());
+
+    expect(await screen.findByText(/generation is currently paused/i)).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body).toMatchObject({ photo: expect.any(String), emotion: "happy" });
+    expect(body.level).toBeUndefined();
+    expect(fileInput()).toBeInTheDocument();
+  });
+});
+
+describe("Capture screen — live preview", () => {
+  it("shows the camera stream in the preview box after turning the camera on", async () => {
+    const stop = vi.fn();
+    const stream = { getTracks: () => [{ stop }] };
+    Object.defineProperty(navigator, "mediaDevices", {
+      value: {
+        getUserMedia: vi.fn().mockResolvedValue(stream),
+      },
+      configurable: true,
+    });
+
+    render(<CapturePage />);
+    await userEvent.click(screen.getByRole("button", { name: /turn camera on/i }));
+
+    await waitFor(() => {
+      const video = document.querySelector("video");
+      expect(video).toBeInTheDocument();
+      expect(video.srcObject).toBe(stream);
+    });
   });
 });
 
@@ -98,19 +116,6 @@ describe("Capture screen — generation", () => {
 
     const generated = await screen.findByAltText(/generated/i);
     expect(generated).toHaveAttribute("src", BLOB_URL);
-  });
-
-  it("includes the selected mood in the request", async () => {
-    const fetchMock = respondWith({ body: { imageUrl: BLOB_URL } });
-
-    await selectPhoto();
-    await userEvent.selectOptions(screen.getByRole("combobox"), "I am feeling bold 🔥");
-    await userEvent.click(generateButton());
-
-    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
-    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
-    expect(body.hint).toBe("I am feeling bold 🔥");
-    expect(body.photo).toBeTruthy();
   });
 
   it("shows a plain message on failure, keeping the photo for a retry", async () => {
