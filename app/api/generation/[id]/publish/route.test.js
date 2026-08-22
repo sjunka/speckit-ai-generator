@@ -128,7 +128,7 @@ describe("POST /api/generation/[id]/publish", () => {
   it("holds no ownership check of its own: it passes the session userId straight to the module", async () => {
     const { POST, setPublished } = await load();
     const source = (await import("node:fs")).readFileSync(
-      new URL("./route.js", import.meta.url),
+      `${process.cwd()}/app/api/generation/[id]/publish/route.js`,
       "utf8"
     );
 
