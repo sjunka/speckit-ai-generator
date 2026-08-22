@@ -10,8 +10,7 @@ export const POST = async (request, { params }) => {
   const { userId } = await auth();
   if (!userId) return new Response("Unauthorized", { status: 401 });
 
-  const { id } = await params;
-  const { isPublic } = await request.json();
+  const [{ id }, { isPublic }] = await Promise.all([params, request.json()]);
   if (typeof isPublic !== "boolean") {
     return new Response("Invalid isPublic", { status: 400 });
   }
