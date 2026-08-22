@@ -1,48 +1,18 @@
-import { NextResponse } from "next/server";
-import { generations } from "@/lib/db";
+import { generations } from "@/lib/db.js";
 
-export async function GET(request, context = {}) {
-  const routeParams = await (request?.params ?? context?.params ?? Promise.resolve({}));
-  const { id } = routeParams || {};
+// The provider's videoUrl is cross-origin and has no CORS headers, so the
+// browser can't fetch() it directly (needed to build a shareable File).
+// Stream it through our own origin instead.
+export const GET = async (_request, { params }) => {
+  const { id } = await params;
+  const record = await (await generations()).findOne({ jobId: id });
 
-  if (!id) {
-    return NextResponse.json({ error: "Missing id" }, { status: 400 });
-  }
+  if (!record?.url) return new Response("Not found", { status: 404 });
 
-  const collection = await generations();
-  const record = await collection.findOne({ jobId: id });
+  const upstream = await fetch(record.url);
+  if (!upstream.ok) return new Response("Not found", { status: 404 });
 
-  if (!record || !record.url) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-
-  const response = await fetch(record.url);
-
-  if (!response.ok) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-
-  let blob;
-
-  if (typeof response.arrayBuffer === "function") {
-    blob = await response.arrayBuffer();
-  } else if (typeof response.text === "function") {
-    blob = Buffer.from(await response.text());
-  } else if (typeof response.body === "string") {
-    blob = Buffer.from(response.body);
-  } else if (response.body instanceof ArrayBuffer) {
-    blob = Buffer.from(response.body);
-  } else if (response.body instanceof Uint8Array) {
-    blob = Buffer.from(response.body);
-  } else {
-    blob = Buffer.from(String(response.body || ""));
-  }
-
-  return new NextResponse(blob, {
-    status: 200,
-    headers: {
-      "Content-Type": response.headers.get("content-type") || "video/mp4",
-      "Content-Disposition": `attachment; filename="video-${id}.mp4"`,
-    },
+  return new Response(upstream.body, {
+    headers: { "Content-Type": upstream.headers.get("content-type") || "video/mp4" },
   });
-}
+};

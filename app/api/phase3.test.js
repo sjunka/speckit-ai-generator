@@ -63,7 +63,7 @@ describe("phase 3 backend", () => {
 
   it("reads status and returns a stored video url without re-fetching when ready", async () => {
     fakeCollection.findOne.mockResolvedValue({ jobId: "job-123", status: "ready", url: "https://blob.test/video-1.mp4" });
-    const response = await getVideoStatus({ params: Promise.resolve({ id: "job-123" }) });
+    const response = await getVideoStatus(new Request("http://localhost/api/video/job-123"), { params: Promise.resolve({ id: "job-123" }) });
     expect(response.status).toBe(200);
     const json = await response.json();
     expect(json.status).toBe("ready");
@@ -73,7 +73,7 @@ describe("phase 3 backend", () => {
   it("streams the file route when a stored video exists", async () => {
     fakeCollection.findOne.mockResolvedValue({ jobId: "job-123", url: "https://blob.test/video-1.mp4" });
     global.fetch = vi.fn(async () => ({ ok: true, body: "video-bytes", headers: new Headers({ "content-type": "video/mp4" }) }));
-    const response = await getVideoFile({ params: Promise.resolve({ id: "job-123" }) });
+    const response = await getVideoFile(new Request("http://localhost/api/video/job-123/file"), { params: Promise.resolve({ id: "job-123" }) });
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("video/mp4");
   });

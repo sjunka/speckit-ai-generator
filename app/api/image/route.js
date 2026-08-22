@@ -1,46 +1,36 @@
 import { auth } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
-import { generations } from "@/lib/db";
-import { store } from "@/lib/blob";
-import { generateImage } from "@/lib/higgsfield";
-import { assertEnabled } from "@/lib/settings";
+import { generations } from "@/lib/db.js";
+import { assertEnabled } from "@/lib/settings.js";
+import { generateImage } from "@/lib/higgsfield.js";
+import { store } from "@/lib/blob.js";
 
-export async function POST(request) {
+export const POST = async (request) => {
   const { userId } = await auth();
+  if (!userId) return new Response("Unauthorized", { status: 401 });
 
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { photo, hint } = await request.json();
 
   try {
     await assertEnabled();
-  } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: error.status || 503 });
-  }
 
-  try {
-    const { photo, hint } = await request.json();
+    // Higgsfield takes a public image_url, not bytes, so the photo goes to blob first.
+    const [, photoType, photoBase64] = photo.match(/^data:(.+);base64,(.+)$/);
+    const photoUrl = await store(Buffer.from(photoBase64, "base64"), photoType);
 
-    if (!photo) {
-      return NextResponse.json({ error: "Missing photo" }, { status: 400 });
-    }
-
-    const photoUrl = await store(Buffer.from(photo.replace(/^data:image\/[a-z]+;base64,/, ""), "base64"), "image/png");
     const { buffer, contentType } = await generateImage(photoUrl, hint);
-    const generatedUrl = await store(buffer, contentType);
-    const collection = await generations();
-    const createdAt = new Date();
+    const imageUrl = await store(buffer, contentType);
 
-    const result = await collection.insertOne({
+    await (await generations()).insertOne({
       userId,
       kind: "image",
       status: "ready",
-      url: generatedUrl,
-      createdAt,
+      url: imageUrl,
+      createdAt: new Date(),
     });
 
-    return NextResponse.json({ imageUrl: generatedUrl, id: result.insertedId }, { status: 200 });
+    return Response.json({ imageUrl });
   } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Image generation failed:", error);
+    return new Response(error.message, { status: error.status || 500 });
   }
-}
+};

@@ -1,29 +1,21 @@
 import { auth } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
-import { generations } from "@/lib/db";
-import { startVideo } from "@/lib/higgsfield";
-import { assertEnabled, getSettings } from "@/lib/settings";
+import { generations } from "@/lib/db.js";
+import { assertEnabled, getSettings } from "@/lib/settings.js";
+import { startVideo } from "@/lib/higgsfield.js";
 
-export async function POST(request) {
+export const POST = async (request) => {
   const { userId } = await auth();
+  if (!userId) return new Response("Unauthorized", { status: 401 });
 
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { imageUrl } = await request.json();
 
   try {
     await assertEnabled();
-  } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: error.status || 503 });
-  }
 
-  try {
-    const { imageUrl } = await request.json();
-    const settings = await getSettings();
-    const jobId = await startVideo(imageUrl, settings.videoQuality || "lite");
-    const collection = await generations();
+    const { videoQuality } = await getSettings();
+    const jobId = await startVideo(imageUrl, videoQuality);
 
-    await collection.insertOne({
+    await (await generations()).insertOne({
       userId,
       kind: "video",
       status: "pending",
@@ -32,8 +24,8 @@ export async function POST(request) {
       createdAt: new Date(),
     });
 
-    return NextResponse.json({ jobId }, { status: 200 });
+    return Response.json({ jobId });
   } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return new Response(error.message, { status: error.status || 502 });
   }
-}
+};

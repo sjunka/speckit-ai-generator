@@ -37,7 +37,7 @@ describe("/api/settings", () => {
     auth.mockResolvedValue({ userId: "owner" });
     isOwner.mockReturnValue(true);
     const settings = { findOne: vi.fn().mockResolvedValue({ _id: "config", enabled: true, videoQuality: "turbo" }), updateOne: vi.fn() };
-    db.mockResolvedValue({ db: vi.fn().mockReturnValue({ collection: vi.fn().mockReturnValue(settings) }) });
+    db.mockResolvedValue({ collection: vi.fn().mockReturnValue(settings) });
 
     const response = await PATCH(new Request("http://localhost/api/settings", { method: "PATCH", body: JSON.stringify({ enabled: false }) }));
     expect(response.status).toBe(200);
@@ -55,7 +55,7 @@ describe("/api/settings", () => {
     auth.mockResolvedValue({ userId: "owner" });
     isOwner.mockReturnValue(true);
     const settings = { findOne: vi.fn().mockResolvedValue(null), updateOne: vi.fn() };
-    db.mockResolvedValue({ db: vi.fn().mockReturnValue({ collection: vi.fn().mockReturnValue(settings) }) });
+    db.mockResolvedValue({ collection: vi.fn().mockReturnValue(settings) });
 
     const response = await PATCH(new Request("http://localhost/api/settings", { method: "PATCH", body: JSON.stringify({ enabled: false }) }));
     expect(response.status).toBe(200);

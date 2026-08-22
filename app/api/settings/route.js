@@ -20,7 +20,7 @@ export const PATCH = async (request) => {
   }
 
   const [body, database] = await Promise.all([request.json(), db()]);
-  const settings = database.db("ia-generator").collection("settings");
+  const settings = database.collection("settings");
   const current = await settings.findOne({ _id: "config" });
   const { _id, ...currentFields } = current ?? {};
   const update = {
