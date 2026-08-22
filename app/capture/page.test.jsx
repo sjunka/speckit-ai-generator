@@ -202,3 +202,148 @@ describe("Capture screen — handoff to video", () => {
     expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({ imageUrl: BLOB_URL });
   });
 });
+
+// T018 — the in-page camera, wired to the same handler the file picker uses.
+describe("Capture screen — the in-page camera", () => {
+  let streams;
+
+  const fakeStream = () => {
+    const stream = { tracks: [{ stop: vi.fn() }] };
+    stream.getTracks = () => stream.tracks;
+    streams.push(stream);
+    return stream;
+  };
+
+  beforeEach(() => {
+    streams = [];
+    // Trap 1: the property is absent in jsdom, so it is defined rather than set.
+    Object.defineProperty(navigator, "mediaDevices", {
+      value: { getUserMedia: vi.fn(async () => fakeStream()) },
+      configurable: true,
+      writable: true,
+    });
+    HTMLCanvasElement.prototype.getContext = vi.fn(() => ({ drawImage: vi.fn() }));
+    HTMLCanvasElement.prototype.toBlob = vi.fn((callback) =>
+      callback(new Blob(["camera-bytes"], { type: "image/png" }))
+    );
+  });
+
+  const takeFromCamera = async () => {
+    await userEvent.click(screen.getByRole("button", { name: "Turn camera on" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Take photo" })).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: "Take photo" }));
+  };
+
+  // FR-022: a taken photo is indistinguishable from a picked file.
+  it("previews a taken photo and enables Generate exactly as a picked file does", async () => {
+    render(<CapturePage />);
+
+    expect(generateButton()).toBeDisabled();
+    await takeFromCamera();
+
+    expect(await screen.findByAltText(/selected/i)).toBeInTheDocument();
+    await waitFor(() => expect(generateButton()).toBeEnabled());
+  });
+
+  it("sends the taken photo as the photo in the request", async () => {
+    const fetchMock = respondWith({ body: { imageUrl: BLOB_URL } });
+
+    render(<CapturePage />);
+    await takeFromCamera();
+    await waitFor(() => expect(generateButton()).toBeEnabled());
+    await userEvent.click(generateButton());
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.photo).toContain("data:image/png");
+    expect(body.emotion).toBe("happy");
+  });
+
+  // US4 scenario 9: picking a file afterwards replaces it, as in 001.
+  it("lets a picked file replace a taken photo", async () => {
+    render(<CapturePage />);
+
+    await takeFromCamera();
+    const taken = (await screen.findByAltText(/selected/i)).getAttribute("src");
+
+    await userEvent.upload(fileInput(), new File(["picked-bytes"], "picked.png", { type: "image/png" }));
+
+    await waitFor(() =>
+      expect(screen.getByAltText(/selected/i).getAttribute("src")).not.toBe(taken)
+    );
+    expect(screen.getAllByAltText(/selected/i)).toHaveLength(1);
+  });
+
+  // FR-023: the file picker alone still completes a generation.
+  it("still completes a generation from the file picker alone", async () => {
+    const fetchMock = respondWith({ body: { imageUrl: BLOB_URL } });
+
+    render(<CapturePage />);
+    await userEvent.upload(fileInput(), photo("first.png"));
+    await waitFor(() => expect(generateButton()).toBeEnabled());
+    await userEvent.click(generateButton());
+
+    expect(await screen.findByAltText(/generated/i)).toHaveAttribute("src", BLOB_URL);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+// T020 — FR-027, FR-028, SC-009: the camera is independent of generation.
+describe("Capture screen — the camera while generation is paused", () => {
+  let getUserMedia;
+
+  beforeEach(() => {
+    const stream = { tracks: [{ stop: vi.fn() }] };
+    stream.getTracks = () => stream.tracks;
+    getUserMedia = vi.fn(async () => stream);
+    Object.defineProperty(navigator, "mediaDevices", {
+      value: { getUserMedia },
+      configurable: true,
+      writable: true,
+    });
+    HTMLCanvasElement.prototype.getContext = vi.fn(() => ({ drawImage: vi.fn() }));
+    HTMLCanvasElement.prototype.toBlob = vi.fn((callback) =>
+      callback(new Blob(["camera-bytes"], { type: "image/png" }))
+    );
+  });
+
+  const pauseGeneration = async () => {
+    const fetchMock = respondWith({ status: 503 });
+    render(<CapturePage />);
+    await userEvent.upload(fileInput(), photo("first.png"));
+    await waitFor(() => expect(generateButton()).toBeEnabled());
+    await userEvent.click(generateButton());
+    expect(await screen.findByText(/generation is currently paused/i)).toBeInTheDocument();
+    return fetchMock;
+  };
+
+  it("still renders the paused banner, unchanged from 001", async () => {
+    await pauseGeneration();
+
+    expect(screen.queryByText(/failed/i)).not.toBeInTheDocument();
+    await waitFor(() => expect(generateButton()).toBeDisabled());
+  });
+
+  it("turns the camera on, takes a photo and leaves the network alone while paused", async () => {
+    const fetchMock = await pauseGeneration();
+    const callsBefore = fetchMock.mock.calls.length;
+
+    await userEvent.click(screen.getByRole("button", { name: "Turn camera on" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Take photo" })).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: "Take photo" }));
+
+    expect(getUserMedia).toHaveBeenCalled();
+    await waitFor(() => expect(screen.getByAltText(/selected/i)).toBeInTheDocument());
+    expect(fetchMock.mock.calls).toHaveLength(callsBefore);
+  });
+
+  it("still accepts a picked file while paused", async () => {
+    const fetchMock = await pauseGeneration();
+    const callsBefore = fetchMock.mock.calls.length;
+
+    await userEvent.upload(fileInput(), new File(["other"], "second.png", { type: "image/png" }));
+
+    await waitFor(() => expect(screen.getByAltText(/selected/i)).toBeInTheDocument());
+    expect(fetchMock.mock.calls).toHaveLength(callsBefore);
+  });
+});
