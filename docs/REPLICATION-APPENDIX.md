@@ -9,7 +9,7 @@ these files. When the rebuild is done, every file below must match byte for
 byte. Excluded: the docs themselves, `openspec/`, binary assets (`public/icon-*.png`,
 `app/favicon.ico`), lockfiles, and local agent tooling.
 
-88 files.
+118 files.
 
 ## Configuration
 
@@ -43,60 +43,60 @@ OWNER_ID=user_...
 ### `.github/workflows/auto-pr.yml`
 
 ```yaml
-name: Auto-PR hacia develop
+# name: Auto-PR hacia develop
 
-# Al subir cualquier rama que no sea main ni develop, abre el PR contra develop
-# (si no existe ya). El CI corre solo: lint + tests + build + chequeo de
-# conflictos. El merge lo hace una persona, nunca es automático.
+# # Al subir cualquier rama que no sea main ni develop, abre el PR contra develop
+# # (si no existe ya). El CI corre solo: lint + tests + build + chequeo de
+# # conflictos. El merge lo hace una persona, nunca es automático.
 
-on:
-  push:
-    branches-ignore:
-      - main
-      - develop
-      - "dependabot/**"
+# on:
+#   push:
+#     branches-ignore:
+#       - main
+#       - develop
+#       - "dependabot/**"
 
-permissions:
-  contents: read
-  pull-requests: write
+# permissions:
+#   contents: read
+#   pull-requests: write
 
-jobs:
-  abrir-pr:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          # Historia completa: el checkout por defecto es shallow y de una sola
-          # rama, y entonces origin/develop no existe dentro del runner.
-          fetch-depth: 0
+# jobs:
+#   abrir-pr:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v4
+#         with:
+#           # Historia completa: el checkout por defecto es shallow y de una sola
+#           # rama, y entonces origin/develop no existe dentro del runner.
+#           fetch-depth: 0
 
-      - name: Traer develop
-        run: git fetch origin develop:refs/remotes/origin/develop
+#       - name: Traer develop
+#         run: git fetch origin develop:refs/remotes/origin/develop
 
-      - name: Crear PR si no existe
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BRANCH: ${{ github.ref_name }}
-        run: |
-          set -euo pipefail
+#       - name: Crear PR si no existe
+#         env:
+#           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#           BRANCH: ${{ github.ref_name }}
+#         run: |
+#           set -euo pipefail
 
-          EXISTING=$(gh pr list --head "$BRANCH" --base develop --state open --json number -q '.[0].number' || true)
+#           EXISTING=$(gh pr list --head "$BRANCH" --base develop --state open --json number -q '.[0].number' || true)
 
-          if [ -z "$EXISTING" ]; then
-            # Si la rama no aporta commits nuevos sobre develop, no hay nada que integrar.
-            if [ -z "$(git log origin/develop..HEAD --oneline)" ]; then
-              echo "La rama no tiene commits por delante de develop. Nada que hacer."
-              exit 0
-            fi
-            gh pr create \
-              --base develop \
-              --head "$BRANCH" \
-              --title "$BRANCH -> develop" \
-              --body "PR abierto automáticamente al subir \`$BRANCH\`. Revisa el CI y mergea a mano cuando esté en verde."
-            echo "PR creado."
-          else
-            echo "Ya existe el PR #$EXISTING, no se crea otro."
-          fi
+#           if [ -z "$EXISTING" ]; then
+#             # Si la rama no aporta commits nuevos sobre develop, no hay nada que integrar.
+#             if [ -z "$(git log origin/develop..HEAD --oneline)" ]; then
+#               echo "La rama no tiene commits por delante de develop. Nada que hacer."
+#               exit 0
+#             fi
+#             gh pr create \
+#               --base develop \
+#               --head "$BRANCH" \
+#               --title "$BRANCH -> develop" \
+#               --body "PR abierto automáticamente al subir \`$BRANCH\`. Revisa el CI y mergea a mano cuando esté en verde."
+#             echo "PR creado."
+#           else
+#             echo "Ya existe el PR #$EXISTING, no se crea otro."
+#           fi
 ```
 
 ### `.github/workflows/ci.yml`
@@ -570,7 +570,7 @@ export default function RootLayout({ children }) {
 
 import Link from "next/link";
 import { useUser, UserButton } from "@clerk/nextjs";
-import { ImageIcon, GaugeIcon } from "@/components/ui";
+import { ImageIcon, GaugeIcon, CameraIcon, ShareIcon } from "@/components/ui";
 
 const NavLink = ({ href, icon: Icon, children }) => (
   <Link
@@ -589,8 +589,14 @@ export const Nav = () => {
   return (
     <div className="flex items-center justify-between">
       <nav className="flex items-center gap-1 bg-surface-1 border border-hairline rounded-lg p-1">
-        <NavLink href="/capture" icon={ImageIcon}>
+        <NavLink href="/capture" icon={CameraIcon}>
           Capture
+        </NavLink>
+        <NavLink href="/gallery" icon={ImageIcon}>
+          Gallery
+        </NavLink>
+        <NavLink href="/wall" icon={ShareIcon}>
+          Wall
         </NavLink>
         {isAdmin && (
           <NavLink href="/dashboard" icon={GaugeIcon}>
@@ -1097,6 +1103,8 @@ const isProtectedRoute = createRouteMatcher([
   "/capture(.*)",
   "/result(.*)",
   "/dashboard(.*)",
+  "/gallery(.*)",
+  // "/wall" is deliberately absent: the wall is public, like the landing route.
 ]);
 
 export const proxy = clerkMiddleware(async (authContext, request) => {
@@ -1127,11 +1135,18 @@ export default proxy;
 ```js
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+// Captured so the wall can be asserted absent from the protected matcher, not
+// merely unprotected by the mock's regex (FR-018).
+const matcher = vi.hoisted(() => ({ patterns: [] }));
+
 vi.mock("@clerk/nextjs/server", () => ({
   clerkMiddleware: (handler) => handler,
-  createRouteMatcher: (patterns) => (request) => {
-    const { pathname } = new URL(request.url);
-    return patterns.some((pattern) => new RegExp(`^${pattern.replace("(.*)", ".*")}$`).test(pathname));
+  createRouteMatcher: (patterns) => {
+    matcher.patterns = patterns;
+    return (request) => {
+      const { pathname } = new URL(request.url);
+      return patterns.some((pattern) => new RegExp(`^${pattern.replace("(.*)", ".*")}$`).test(pathname));
+    };
   },
 }));
 
@@ -1160,6 +1175,43 @@ describe("proxy", () => {
     const response = await visit("/");
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe("http://test/capture");
+  });
+
+  it("protects an anonymous gallery request", async () => {
+    await visit("/gallery");
+    expect(protect).toHaveBeenCalled();
+  });
+
+  it("leaves the wall open to a visitor with no session", async () => {
+    const response = await visit("/wall");
+
+    expect(protect).not.toHaveBeenCalled();
+    expect(response).toBeUndefined();
+  });
+
+  it("treats the wall exactly like the public landing route for a signed-in visitor", async () => {
+    userId = "user-1";
+    const response = await visit("/wall");
+
+    expect(protect).not.toHaveBeenCalled();
+    expect(response).toBeUndefined();
+  });
+
+  it("keeps 001's three protected routes and adds only the gallery", async () => {
+    await visit("/capture");
+
+    expect(matcher.patterns).toEqual([
+      "/capture(.*)",
+      "/result(.*)",
+      "/dashboard(.*)",
+      "/gallery(.*)",
+    ]);
+  });
+
+  it("never adds the wall to the protected matcher", async () => {
+    await visit("/wall");
+
+    expect(matcher.patterns.some((pattern) => pattern.includes("/wall"))).toBe(false);
   });
 });
 ```
@@ -1289,6 +1341,571 @@ describe("lib/db", () => {
     const { db } = await import("./db.js");
 
     await expect(db()).rejects.toThrow("MONGODB_URI");
+  });
+});
+```
+
+### `lib/emotions.js`
+
+```js
+// The three emoji live here and nowhere else: a screen renders the stored
+// emotion verbatim, and only this module composes the string the provider sees.
+const EMOJI = { happy: "😊", angry: "😠", sad: "😢" };
+
+export const EMOTIONS = ["happy", "angry", "sad"]; // render order; EMOTIONS[0] is preselected
+export const LEVELS = ["a bit", "quite", "very"]; // render order; LEVELS[1] is preselected
+export const LEVELLED = ["angry", "sad"]; // the emotions that take a level
+
+const invalid = (message) => {
+  const error = new Error(message);
+  error.status = 400;
+  return error;
+};
+
+// The only validator in the feature. Seven strings are reachable and no eighth is.
+export const buildHint = (emotion, level) => {
+  if (!EMOTIONS.includes(emotion)) throw invalid("Unknown emotion");
+
+  if (!LEVELLED.includes(emotion)) {
+    if (level !== undefined) throw invalid(`${emotion} takes no level`);
+    return `I am feeling ${emotion} ${EMOJI[emotion]}`;
+  }
+
+  if (!LEVELS.includes(level)) throw invalid("Unknown level");
+
+  return `I am feeling ${level} ${emotion} ${EMOJI[emotion]}`;
+};
+```
+
+### `lib/emotions.test.js`
+
+```js
+import { describe, it, expect } from "vitest";
+import { EMOTIONS, LEVELS, LEVELLED, buildHint } from "./emotions.js";
+
+// The seven strings the provider can ever receive. An eighth is unreachable
+// (SC-003), and the case below that enumerates every valid combination is what
+// proves it.
+const HINTS = {
+  happy: "I am feeling happy 😊",
+  "a bit angry": "I am feeling a bit angry 😠",
+  "quite angry": "I am feeling quite angry 😠",
+  "very angry": "I am feeling very angry 😠",
+  "a bit sad": "I am feeling a bit sad 😢",
+  "quite sad": "I am feeling quite sad 😢",
+  "very sad": "I am feeling very sad 😢",
+};
+
+describe("lib/emotions.js", () => {
+  it("offers three emotions in render order", () => {
+    expect(EMOTIONS).toEqual(["happy", "angry", "sad"]);
+  });
+
+  it("offers three levels in render order", () => {
+    expect(LEVELS).toEqual(["a bit", "quite", "very"]);
+  });
+
+  it("marks only angry and sad as taking a level", () => {
+    expect(LEVELLED).toEqual(["angry", "sad"]);
+  });
+
+  it("composes happy's hint with and without an explicit undefined level", () => {
+    expect(buildHint("happy")).toBe(HINTS.happy);
+    expect(buildHint("happy", undefined)).toBe(HINTS.happy);
+  });
+
+  it("composes every levelled hint character for character", () => {
+    for (const emotion of LEVELLED) {
+      for (const level of LEVELS) {
+        expect(buildHint(emotion, level)).toBe(HINTS[`${level} ${emotion}`]);
+      }
+    }
+  });
+
+  it("reaches exactly seven hints and no eighth", () => {
+    const reachable = new Set([buildHint("happy")]);
+    for (const emotion of LEVELLED) {
+      for (const level of LEVELS) reachable.add(buildHint(emotion, level));
+    }
+
+    expect(reachable.size).toBe(7);
+    expect([...reachable].sort()).toEqual(Object.values(HINTS).sort());
+  });
+
+  it("rejects an emotion outside the three", () => {
+    for (const emotion of ["excited", "HAPPY", "", undefined, null]) {
+      expect(() => buildHint(emotion, "quite")).toThrowError("Unknown emotion");
+    }
+
+    try {
+      buildHint("excited");
+      expect.unreachable();
+    } catch (error) {
+      expect(error.message).toBe("Unknown emotion");
+      expect(error.status).toBe(400);
+    }
+  });
+
+  it("rejects a levelled emotion whose level is unknown or absent", () => {
+    for (const emotion of LEVELLED) {
+      for (const level of ["a lot", "QUITE", "", undefined, null]) {
+        try {
+          buildHint(emotion, level);
+          expect.unreachable();
+        } catch (error) {
+          expect(error.message).toBe("Unknown level");
+          expect(error.status).toBe(400);
+        }
+      }
+    }
+  });
+
+  it("rejects a level on happy, valid or not", () => {
+    for (const level of ["quite", "a bit", "very", "a lot", null]) {
+      try {
+        buildHint("happy", level);
+        expect.unreachable();
+      } catch (error) {
+        expect(error.message).toBe("happy takes no level");
+        expect(error.status).toBe(400);
+      }
+    }
+  });
+});
+```
+
+### `lib/generations.js`
+
+```js
+import { ObjectId } from "mongodb";
+import { generations } from "./db.js";
+
+export const PAGE_SIZE = 12;
+
+// The one shape every listing produces, on the server and over HTTP alike.
+// The read-time defaults here are the whole migration story: no document is
+// rewritten to gain emotion, level or isPublic.
+const toItem = (doc) => ({
+  id: doc._id.toString(),
+  kind: doc.kind,
+  status: doc.status,
+  url: doc.url ?? null,
+  emotion: doc.emotion ?? null,
+  level: doc.level ?? null,
+  isPublic: doc.isPublic === true,
+  createdAt: new Date(doc.createdAt).toISOString(),
+});
+
+// The _id tiebreaker keeps paging stable when two documents share a timestamp.
+// One document past the page is what answers hasMore without a second query.
+const page = async (filter, n) => {
+  const collection = await generations();
+
+  const docs = await collection
+    .find(filter)
+    .sort({ createdAt: -1, _id: -1 })
+    .skip(n * PAGE_SIZE)
+    .limit(PAGE_SIZE + 1)
+    .toArray();
+
+  return { items: docs.slice(0, PAGE_SIZE).map(toItem), hasMore: docs.length > PAGE_SIZE };
+};
+
+export const listByUser = async (userId, n = 0) => page({ userId }, n);
+
+export const listPublic = async (n = 0) => page({ isPublic: true }, n);
+
+// An id of the wrong shape is "not-found", never a 500.
+const toObjectId = (id) => (ObjectId.isValid(id) ? new ObjectId(id) : null);
+
+export const setPublished = async (id, userId, isPublic) => {
+  const _id = toObjectId(id);
+  if (!_id) return "not-found";
+
+  const collection = await generations();
+
+  // The userId in this filter is the whole ownership check: a non-owner's
+  // attempt leaves the record byte-identical, and is indistinguishable from an
+  // id that matches nothing.
+  const doc = await collection.findOne({ _id, userId });
+  if (!doc) return "not-found";
+
+  // Readiness is checked only on the way up; unpublishing works at any status.
+  if (isPublic && doc.status !== "ready") return "not-ready";
+
+  await collection.updateOne({ _id }, { $set: { isPublic } });
+  return "ok";
+};
+```
+
+### `lib/generations.test.js`
+
+```js
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { ObjectId } from "mongodb";
+import { FakeCollection } from "@/test/mongo-fake.js";
+import { PAGE_SIZE, listByUser, listPublic, setPublished } from "./generations.js";
+
+vi.mock("./db.js");
+
+let collection;
+let cursorCalls;
+
+// Records the cursor stages the module asks for, so the sort spec and the
+// PAGE_SIZE + 1 limit are asserted rather than inferred from the page contents.
+const record = (col) => {
+  const find = col.find.bind(col);
+
+  col.find = (filter) => {
+    cursorCalls.filter = filter;
+    const cursor = find(filter);
+    const { sort, skip, limit } = cursor;
+
+    cursor.sort = (spec) => ((cursorCalls.sort = spec), sort(spec));
+    cursor.skip = (n) => ((cursorCalls.skip = n), skip(n));
+    cursor.limit = (n) => ((cursorCalls.limit = n), limit(n));
+
+    return cursor;
+  };
+
+  return col;
+};
+
+const seed = async (docs) => {
+  for (const doc of docs) await collection.insertOne(doc);
+};
+
+const image = (overrides = {}) => ({
+  userId: "user-1",
+  kind: "image",
+  status: "ready",
+  url: "https://blob.test/image-1.png",
+  emotion: "happy",
+  isPublic: false,
+  createdAt: new Date("2026-08-21T10:00:00.000Z"),
+  ...overrides,
+});
+
+beforeEach(async () => {
+  vi.resetAllMocks();
+  cursorCalls = {};
+  collection = record(new FakeCollection());
+
+  const { generations } = await import("./db.js");
+  generations.mockResolvedValue(collection);
+});
+
+describe("PAGE_SIZE", () => {
+  it("is twelve", () => {
+    expect(PAGE_SIZE).toBe(12);
+  });
+});
+
+describe("listByUser", () => {
+  it("returns only the caller's own generations", async () => {
+    await seed([
+      image({ userId: "user-1", url: "mine-1" }),
+      image({ userId: "user-2", url: "theirs" }),
+      image({ userId: "user-1", url: "mine-2" }),
+    ]);
+
+    const { items } = await listByUser("user-1");
+
+    expect(items).toHaveLength(2);
+    expect(items.map((i) => i.url)).toEqual(expect.arrayContaining(["mine-1", "mine-2"]));
+    expect(items.map((i) => i.url)).not.toContain("theirs");
+    expect(cursorCalls.filter).toEqual({ userId: "user-1" });
+  });
+
+  it("returns the newest generation first", async () => {
+    await seed([
+      image({ url: "older", createdAt: new Date("2026-08-19T10:00:00.000Z") }),
+      image({ url: "newest", createdAt: new Date("2026-08-21T10:00:00.000Z") }),
+      image({ url: "middle", createdAt: new Date("2026-08-20T10:00:00.000Z") }),
+    ]);
+
+    const { items } = await listByUser("user-1");
+
+    expect(items.map((i) => i.url)).toEqual(["newest", "middle", "older"]);
+  });
+
+  it("sorts by createdAt with an _id tiebreaker, both descending", async () => {
+    await seed([image()]);
+    await listByUser("user-1");
+
+    expect(cursorCalls.sort).toEqual({ createdAt: -1, _id: -1 });
+  });
+
+  it("reads one document past the page to decide hasMore", async () => {
+    await seed(Array.from({ length: PAGE_SIZE + 1 }, () => image()));
+
+    const { items, hasMore } = await listByUser("user-1", 0);
+
+    expect(cursorCalls.limit).toBe(PAGE_SIZE + 1);
+    expect(cursorCalls.skip).toBe(0);
+    expect(items).toHaveLength(PAGE_SIZE);
+    expect(hasMore).toBe(true);
+  });
+
+  it("reports no more when the page is exactly full", async () => {
+    await seed(Array.from({ length: PAGE_SIZE }, () => image()));
+
+    const { items, hasMore } = await listByUser("user-1", 0);
+
+    expect(items).toHaveLength(PAGE_SIZE);
+    expect(hasMore).toBe(false);
+  });
+
+  it("skips whole pages", async () => {
+    await seed(Array.from({ length: PAGE_SIZE + 3 }, (_, n) =>
+      image({ url: `image-${n}`, createdAt: new Date(2026, 7, 1, 0, n) })
+    ));
+
+    const { items, hasMore } = await listByUser("user-1", 1);
+
+    expect(cursorCalls.skip).toBe(PAGE_SIZE);
+    expect(items).toHaveLength(3);
+    expect(hasMore).toBe(false);
+  });
+
+  it("defaults to the first page", async () => {
+    await seed([image()]);
+    await listByUser("user-1");
+
+    expect(cursorCalls.skip).toBe(0);
+  });
+
+  it("answers a page past the last one with an empty page, not an error", async () => {
+    await seed([image()]);
+
+    await expect(listByUser("user-1", 9)).resolves.toEqual({ items: [], hasMore: false });
+  });
+
+  it("answers an unknown user with an empty page", async () => {
+    await seed([image({ userId: "user-1" })]);
+
+    await expect(listByUser("nobody")).resolves.toEqual({ items: [], hasMore: false });
+  });
+});
+
+describe("listPublic", () => {
+  it("returns published generations only", async () => {
+    await seed([
+      image({ userId: "user-1", url: "published", isPublic: true }),
+      image({ userId: "user-2", url: "private", isPublic: false }),
+      image({ userId: "user-3", url: "pre-002", isPublic: undefined }),
+    ]);
+
+    const { items } = await listPublic();
+
+    expect(items.map((i) => i.url)).toEqual(["published"]);
+    expect(cursorCalls.filter).toEqual({ isPublic: true });
+  });
+
+  it("returns published generations from every user, newest first", async () => {
+    await seed([
+      image({ userId: "user-1", url: "older", isPublic: true, createdAt: new Date("2026-08-19") }),
+      image({ userId: "user-2", url: "newer", isPublic: true, createdAt: new Date("2026-08-21") }),
+    ]);
+
+    const { items } = await listPublic(0);
+
+    expect(items.map((i) => i.url)).toEqual(["newer", "older"]);
+  });
+
+  it("pages exactly like the gallery", async () => {
+    await seed(Array.from({ length: PAGE_SIZE + 1 }, () => image({ isPublic: true })));
+
+    const { items, hasMore } = await listPublic(0);
+
+    expect(cursorCalls.sort).toEqual({ createdAt: -1, _id: -1 });
+    expect(cursorCalls.skip).toBe(0);
+    expect(cursorCalls.limit).toBe(PAGE_SIZE + 1);
+    expect(items).toHaveLength(PAGE_SIZE);
+    expect(hasMore).toBe(true);
+  });
+
+  it("answers a page past the last one with an empty page", async () => {
+    await seed([image({ isPublic: true })]);
+
+    await expect(listPublic(4)).resolves.toEqual({ items: [], hasMore: false });
+  });
+});
+
+describe("the Item shape", () => {
+  it("stringifies the document id", async () => {
+    const { insertedId } = await collection.insertOne(image());
+
+    const { items } = await listByUser("user-1");
+
+    expect(items[0].id).toBe(insertedId.toString());
+    expect(typeof items[0].id).toBe("string");
+  });
+
+  it("never carries a userId", async () => {
+    await seed([image()]);
+
+    const { items } = await listByUser("user-1");
+
+    expect(items[0]).not.toHaveProperty("userId");
+    expect(Object.keys(items[0]).sort()).toEqual(
+      ["createdAt", "emotion", "id", "isPublic", "kind", "level", "status", "url"]
+    );
+  });
+
+  it("carries createdAt as an ISO 8601 string", async () => {
+    await seed([image({ createdAt: new Date("2026-08-21T10:00:00.000Z") })]);
+
+    const { items } = await listByUser("user-1");
+
+    expect(items[0].createdAt).toBe("2026-08-21T10:00:00.000Z");
+  });
+
+  it("maps an emotion and a level verbatim", async () => {
+    await seed([image({ emotion: "angry", level: "quite" })]);
+
+    const { items } = await listByUser("user-1");
+
+    expect(items[0]).toMatchObject({ emotion: "angry", level: "quite" });
+  });
+
+  it("reads a missing level as null", async () => {
+    await seed([image({ emotion: "happy" })]);
+
+    const { items } = await listByUser("user-1");
+
+    expect(items[0].level).toBeNull();
+  });
+
+  // The whole migration story: no backfill, defaults at read time.
+  it("reads a pre-002 record as having no emotion, no level and no flag", async () => {
+    await seed([
+      {
+        userId: "user-1",
+        kind: "image",
+        status: "ready",
+        url: "https://blob.test/old.png",
+        createdAt: new Date("2026-08-01T10:00:00.000Z"),
+      },
+    ]);
+
+    const { items } = await listByUser("user-1");
+
+    expect(items[0]).toEqual({
+      id: expect.any(String),
+      kind: "image",
+      status: "ready",
+      url: "https://blob.test/old.png",
+      emotion: null,
+      level: null,
+      isPublic: false,
+      createdAt: "2026-08-01T10:00:00.000Z",
+    });
+  });
+
+  it("reads a pending video's missing url as null", async () => {
+    await seed([
+      {
+        userId: "user-1",
+        kind: "video",
+        status: "pending",
+        jobId: "provider-job-1",
+        createdAt: new Date("2026-08-21T10:00:00.000Z"),
+      },
+    ]);
+
+    const { items } = await listByUser("user-1");
+
+    expect(items[0]).toMatchObject({
+      kind: "video",
+      status: "pending",
+      url: null,
+      emotion: null,
+      level: null,
+      isPublic: false,
+    });
+  });
+});
+
+describe("setPublished", () => {
+  const publishable = () => image({ status: "ready", isPublic: false });
+
+  it("publishes the owner's ready generation", async () => {
+    const { insertedId } = await collection.insertOne(publishable());
+
+    await expect(setPublished(insertedId.toString(), "user-1", true)).resolves.toBe("ok");
+    expect(collection.docs[0].isPublic).toBe(true);
+  });
+
+  it("is a no-op on an already published generation", async () => {
+    const { insertedId } = await collection.insertOne(image({ isPublic: true }));
+
+    await expect(setPublished(insertedId.toString(), "user-1", true)).resolves.toBe("ok");
+    expect(collection.docs[0].isPublic).toBe(true);
+  });
+
+  it("unpublishes a published generation", async () => {
+    const { insertedId } = await collection.insertOne(image({ isPublic: true }));
+
+    await expect(setPublished(insertedId.toString(), "user-1", false)).resolves.toBe("ok");
+    expect(collection.docs[0].isPublic).toBe(false);
+  });
+
+  it("unpublishes at any status, readiness being checked only on the way up", async () => {
+    for (const status of ["pending", "failed", "ready"]) {
+      collection.docs.length = 0;
+      const { insertedId } = await collection.insertOne(image({ status, isPublic: true }));
+
+      await expect(setPublished(insertedId.toString(), "user-1", false)).resolves.toBe("ok");
+      expect(collection.docs[0].isPublic).toBe(false);
+    }
+  });
+
+  it("refuses to publish something that is not ready", async () => {
+    for (const status of ["pending", "failed"]) {
+      collection.docs.length = 0;
+      const { insertedId } = await collection.insertOne(image({ status }));
+
+      await expect(setPublished(insertedId.toString(), "user-1", true)).resolves.toBe("not-ready");
+      expect(collection.docs[0].isPublic).toBe(false);
+    }
+  });
+
+  it("answers not-found for an id nothing matches", async () => {
+    await collection.insertOne(publishable());
+
+    await expect(
+      setPublished(new ObjectId().toString(), "user-1", true)
+    ).resolves.toBe("not-found");
+  });
+
+  it("answers not-found for an unparseable id rather than throwing", async () => {
+    for (const id of ["not-an-id", "", "12345", undefined, null]) {
+      await expect(setPublished(id, "user-1", true)).resolves.toBe("not-found");
+    }
+  });
+
+  // Non-existence and non-ownership are deliberately indistinguishable (trap 5).
+  it("answers not-found for a generation owned by somebody else", async () => {
+    const { insertedId } = await collection.insertOne(publishable());
+    const before = JSON.stringify(collection.docs[0]);
+
+    await expect(setPublished(insertedId.toString(), "intruder", true)).resolves.toBe(
+      "not-found"
+    );
+
+    expect(JSON.stringify(collection.docs[0])).toBe(before);
+  });
+
+  it("leaves a non-owner's unpublish attempt equally without effect", async () => {
+    const { insertedId } = await collection.insertOne(image({ isPublic: true }));
+    const before = JSON.stringify(collection.docs[0]);
+
+    await expect(setPublished(insertedId.toString(), "intruder", false)).resolves.toBe(
+      "not-found"
+    );
+
+    expect(JSON.stringify(collection.docs[0])).toBe(before);
   });
 });
 ```
@@ -1698,17 +2315,17 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Nav } from "@/components/Nav";
 import { Card, Button, StatusBadge, Spinner } from "@/components/ui";
-import { PhotoInput, PhotoPreview, HintInput } from "@/components/capture";
+import { PhotoInput, PhotoPreview, EmotionPicker, CameraCapture } from "@/components/capture";
 import { GeneratedResult } from "@/components/capture/GeneratedResult";
 import { useElapsedSeconds } from "@/hooks/useElapsedSeconds";
-
-const DEFAULT_MOOD = "I am feeling happy 😊";
+import { EMOTIONS } from "@/lib/emotions.js";
 
 export default function CapturePage() {
   const router = useRouter();
   const [photo, setPhoto] = useState(null);
   const [preview, setPreview] = useState("");
-  const [mood, setMood] = useState(DEFAULT_MOOD);
+  // The screen posts the emotion and the level; the server composes the string.
+  const [feeling, setFeeling] = useState({ emotion: EMOTIONS[0], level: undefined });
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
   const [paused, setPaused] = useState(false);
@@ -1735,7 +2352,11 @@ export default function CapturePage() {
       const response = await fetch("/api/image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ photo: preview, hint: mood }),
+        body: JSON.stringify({
+          photo: preview,
+          emotion: feeling.emotion,
+          ...(feeling.level ? { level: feeling.level } : {}),
+        }),
       });
 
       if (response.status === 503) {
@@ -1789,9 +2410,19 @@ export default function CapturePage() {
       <Card className="space-y-4 p-4">
         {!imageUrl && (
           <>
-            <PhotoInput value={photo} onChange={handlePhotoSelect} disabled={isGenerating || paused} />
+            {/* Choosing a photo is not a generation: it stays available while
+                generation is paused (FR-027). Only Generate is disabled. */}
+            <PhotoInput value={photo} onChange={handlePhotoSelect} disabled={isGenerating} />
+            {/* The camera hands its photo to the same handler the picker uses,
+                and stays usable while generation is paused (FR-022, FR-027). */}
+            <CameraCapture onPhoto={handlePhotoSelect} disabled={isGenerating} />
             <PhotoPreview src={preview} />
-            <HintInput value={mood} onChange={setMood} />
+            <EmotionPicker
+              emotion={feeling.emotion}
+              level={feeling.level}
+              onChange={setFeeling}
+              disabled={isGenerating || paused}
+            />
           </>
         )}
 
@@ -1934,17 +2565,55 @@ describe("Capture screen — generation", () => {
     expect(generated).toHaveAttribute("src", BLOB_URL);
   });
 
-  it("includes the selected mood in the request", async () => {
+  it("posts the emotion and no level for happy, and no hint at all", async () => {
     const fetchMock = respondWith({ body: { imageUrl: BLOB_URL } });
 
     await selectPhoto();
-    await userEvent.selectOptions(screen.getByRole("combobox"), "I am feeling bold 🔥");
     await userEvent.click(generateButton());
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
     const body = JSON.parse(fetchMock.mock.calls[0][1].body);
-    expect(body.hint).toBe("I am feeling bold 🔥");
+    expect(body.emotion).toBe("happy");
+    expect(body).not.toHaveProperty("level");
+    expect(body).not.toHaveProperty("hint");
     expect(body.photo).toBeTruthy();
+  });
+
+  it("posts the emotion and the level for an emotion that takes one", async () => {
+    const fetchMock = respondWith({ body: { imageUrl: BLOB_URL } });
+
+    await selectPhoto();
+    await userEvent.selectOptions(screen.getByLabelText("Emotion"), "angry");
+    await userEvent.selectOptions(screen.getByLabelText("Level"), "very");
+    await userEvent.click(generateButton());
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body).toMatchObject({ emotion: "angry", level: "very" });
+    expect(body).not.toHaveProperty("hint");
+  });
+
+  it("drops the level again when the reader goes back to happy", async () => {
+    const fetchMock = respondWith({ body: { imageUrl: BLOB_URL } });
+
+    await selectPhoto();
+    await userEvent.selectOptions(screen.getByLabelText("Emotion"), "sad");
+    await userEvent.selectOptions(screen.getByLabelText("Emotion"), "happy");
+    await userEvent.click(generateButton());
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body).toMatchObject({ emotion: "happy" });
+    expect(body).not.toHaveProperty("level");
+  });
+
+  it("offers the three emotions and none of the ten withdrawn moods", async () => {
+    render(<CapturePage />);
+
+    const options = [...screen.getByLabelText("Emotion").options].map((option) => option.value);
+    expect(options).toEqual(["happy", "angry", "sad"]);
+    expect(screen.queryByLabelText("Mood")).toBeNull();
+    expect(screen.queryByText(/I am feeling/)).toBeNull();
   });
 
   it("shows a plain message on failure, keeping the photo for a retry", async () => {
@@ -1996,6 +2665,227 @@ describe("Capture screen — handoff to video", () => {
 
     await waitFor(() => expect(push).toHaveBeenCalledWith(`/result/${JOB_ID}`));
     expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({ imageUrl: BLOB_URL });
+  });
+});
+
+// T018 — the in-page camera, wired to the same handler the file picker uses.
+describe("Capture screen — the in-page camera", () => {
+  let streams;
+
+  const fakeStream = () => {
+    const stream = { tracks: [{ stop: vi.fn() }] };
+    stream.getTracks = () => stream.tracks;
+    streams.push(stream);
+    return stream;
+  };
+
+  beforeEach(() => {
+    streams = [];
+    // Trap 1: the property is absent in jsdom, so it is defined rather than set.
+    Object.defineProperty(navigator, "mediaDevices", {
+      value: { getUserMedia: vi.fn(async () => fakeStream()) },
+      configurable: true,
+      writable: true,
+    });
+    HTMLCanvasElement.prototype.getContext = vi.fn(() => ({ drawImage: vi.fn() }));
+    HTMLCanvasElement.prototype.toBlob = vi.fn((callback) =>
+      callback(new Blob(["camera-bytes"], { type: "image/png" }))
+    );
+  });
+
+  const takeFromCamera = async () => {
+    await userEvent.click(screen.getByRole("button", { name: "Turn camera on" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Take photo" })).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: "Take photo" }));
+  };
+
+  // FR-022: a taken photo is indistinguishable from a picked file.
+  it("previews a taken photo and enables Generate exactly as a picked file does", async () => {
+    render(<CapturePage />);
+
+    expect(generateButton()).toBeDisabled();
+    await takeFromCamera();
+
+    expect(await screen.findByAltText(/selected/i)).toBeInTheDocument();
+    await waitFor(() => expect(generateButton()).toBeEnabled());
+  });
+
+  it("sends the taken photo as the photo in the request", async () => {
+    const fetchMock = respondWith({ body: { imageUrl: BLOB_URL } });
+
+    render(<CapturePage />);
+    await takeFromCamera();
+    await waitFor(() => expect(generateButton()).toBeEnabled());
+    await userEvent.click(generateButton());
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.photo).toContain("data:image/png");
+    expect(body.emotion).toBe("happy");
+  });
+
+  // US4 scenario 9: picking a file afterwards replaces it, as in 001.
+  it("lets a picked file replace a taken photo", async () => {
+    render(<CapturePage />);
+
+    await takeFromCamera();
+    const taken = (await screen.findByAltText(/selected/i)).getAttribute("src");
+
+    await userEvent.upload(fileInput(), new File(["picked-bytes"], "picked.png", { type: "image/png" }));
+
+    await waitFor(() =>
+      expect(screen.getByAltText(/selected/i).getAttribute("src")).not.toBe(taken)
+    );
+    expect(screen.getAllByAltText(/selected/i)).toHaveLength(1);
+  });
+
+  // FR-023: the file picker alone still completes a generation.
+  it("still completes a generation from the file picker alone", async () => {
+    const fetchMock = respondWith({ body: { imageUrl: BLOB_URL } });
+
+    render(<CapturePage />);
+    await userEvent.upload(fileInput(), photo("first.png"));
+    await waitFor(() => expect(generateButton()).toBeEnabled());
+    await userEvent.click(generateButton());
+
+    expect(await screen.findByAltText(/generated/i)).toHaveAttribute("src", BLOB_URL);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+// T020 — FR-027, FR-028, SC-009: the camera is independent of generation.
+describe("Capture screen — the camera while generation is paused", () => {
+  let getUserMedia;
+
+  beforeEach(() => {
+    const stream = { tracks: [{ stop: vi.fn() }] };
+    stream.getTracks = () => stream.tracks;
+    getUserMedia = vi.fn(async () => stream);
+    Object.defineProperty(navigator, "mediaDevices", {
+      value: { getUserMedia },
+      configurable: true,
+      writable: true,
+    });
+    HTMLCanvasElement.prototype.getContext = vi.fn(() => ({ drawImage: vi.fn() }));
+    HTMLCanvasElement.prototype.toBlob = vi.fn((callback) =>
+      callback(new Blob(["camera-bytes"], { type: "image/png" }))
+    );
+  });
+
+  const pauseGeneration = async () => {
+    const fetchMock = respondWith({ status: 503 });
+    render(<CapturePage />);
+    await userEvent.upload(fileInput(), photo("first.png"));
+    await waitFor(() => expect(generateButton()).toBeEnabled());
+    await userEvent.click(generateButton());
+    expect(await screen.findByText(/generation is currently paused/i)).toBeInTheDocument();
+    return fetchMock;
+  };
+
+  it("still renders the paused banner, unchanged from 001", async () => {
+    await pauseGeneration();
+
+    expect(screen.queryByText(/failed/i)).not.toBeInTheDocument();
+    await waitFor(() => expect(generateButton()).toBeDisabled());
+  });
+
+  it("turns the camera on, takes a photo and leaves the network alone while paused", async () => {
+    const fetchMock = await pauseGeneration();
+    const callsBefore = fetchMock.mock.calls.length;
+
+    await userEvent.click(screen.getByRole("button", { name: "Turn camera on" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Take photo" })).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: "Take photo" }));
+
+    expect(getUserMedia).toHaveBeenCalled();
+    await waitFor(() => expect(screen.getByAltText(/selected/i)).toBeInTheDocument());
+    expect(fetchMock.mock.calls).toHaveLength(callsBefore);
+  });
+
+  it("still accepts a picked file while paused", async () => {
+    const fetchMock = await pauseGeneration();
+    const callsBefore = fetchMock.mock.calls.length;
+    const before = screen.getByAltText(/selected/i).getAttribute("src");
+
+    expect(fileInput()).toBeEnabled();
+    await userEvent.upload(fileInput(), new File(["other-bytes"], "second.png", { type: "image/png" }));
+
+    await waitFor(() =>
+      expect(screen.getByAltText(/selected/i).getAttribute("src")).not.toBe(before)
+    );
+    expect(fetchMock.mock.calls).toHaveLength(callsBefore);
+  });
+});
+
+// T021 — FR-029 for the controls this feature adds.
+describe("Capture screen — responsive and accessible", () => {
+  beforeEach(() => {
+    const stream = { tracks: [{ stop: vi.fn() }] };
+    stream.getTracks = () => stream.tracks;
+    Object.defineProperty(navigator, "mediaDevices", {
+      value: { getUserMedia: vi.fn(async () => stream) },
+      configurable: true,
+      writable: true,
+    });
+  });
+
+  it("widens the layout at md and lg", () => {
+    render(<CapturePage />);
+
+    expect(screen.getByRole("main")).toHaveClass("md:max-w-2xl", "lg:max-w-4xl");
+  });
+
+  it("fits 360px without a horizontal scroll", async () => {
+    const { renderAt360px } = await import("@/test/viewport.js");
+
+    const { container, cleanup } = renderAt360px(<CapturePage />);
+
+    expect(container.scrollWidth).toBeLessThanOrEqual(360);
+    cleanup();
+  });
+
+  it("gives the emotion and level selects 44px and a visible focus ring", async () => {
+    render(<CapturePage />);
+
+    expect(screen.getByLabelText("Emotion").className).toMatch(/h-11/);
+    expect(screen.getByLabelText("Emotion").className).toMatch(/focus:outline/);
+
+    await userEvent.selectOptions(screen.getByLabelText("Emotion"), "angry");
+    expect(screen.getByLabelText("Level").className).toMatch(/h-11/);
+    expect(screen.getByLabelText("Level").className).toMatch(/focus:outline/);
+  });
+
+  it("gives every camera control 44px and a visible focus ring", async () => {
+    render(<CapturePage />);
+
+    const onControl = screen.getByRole("button", { name: "Turn camera on" });
+    expect(onControl.className).toMatch(/h-11/);
+    expect(onControl.className).toMatch(/focus:outline/);
+
+    await userEvent.click(onControl);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Take photo" })).toBeInTheDocument());
+
+    ["Take photo", "Switch camera", "Turn camera off"].forEach((name) => {
+      const control = screen.getByRole("button", { name });
+      expect(control.className).toMatch(/h-11/);
+      expect(control.className).toMatch(/focus:outline/);
+    });
+  });
+
+  it("clears 4.5:1 for body text on every surface step", async () => {
+    const { assertBodyTextContrast } = await import("@/test/contrast.js");
+
+    assertBodyTextContrast();
+  });
+
+  it("uses no raw palette hex in the files this block owns", async () => {
+    const { readFileSync } = await import("node:fs");
+
+    ["app/capture/page.jsx", "components/capture/EmotionPicker.jsx", "components/capture/CameraCapture.jsx"].forEach(
+      (file) => {
+        expect(readFileSync(`${process.cwd()}/${file}`, "utf8")).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
+      }
+    );
   });
 });
 ```
@@ -2863,6 +3753,358 @@ describe("Typography scale", () => {
 
 ## API routes
 
+### `app/api/gallery/route.js`
+
+```js
+import { auth } from "@clerk/nextjs/server";
+import { listByUser } from "@/lib/generations.js";
+
+// `page` arrives as a string. Only a non-negative integer is a page; anything
+// else is a 400 rather than a NaN that reads as the end of the list (trap 6).
+const parsePage = (url) => {
+  const raw = new URL(url).searchParams.get("page");
+  if (raw === null) return 0;
+  return /^\d+$/.test(raw) ? Number(raw) : null;
+};
+
+export const GET = async (request) => {
+  // Self-checked, not trusted to the route matcher (FR-003).
+  const { userId } = await auth();
+  if (!userId) return new Response("Unauthorized", { status: 401 });
+
+  const page = parsePage(request.url);
+  if (page === null) return new Response("Invalid page", { status: 400 });
+
+  try {
+    // The userId is the session's own, never one from the request (FR-002).
+    const { items, hasMore } = await listByUser(userId, page);
+    return Response.json({ items, hasMore, page });
+  } catch (error) {
+    return new Response(error.message, { status: error.status || 500 });
+  }
+};
+```
+
+### `app/api/gallery/route.test.js`
+
+```js
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { ITEM_IMAGE, ITEM_PENDING_VIDEO } from "@/test/fixtures.js";
+
+vi.mock("@clerk/nextjs/server", () => ({ auth: vi.fn() }));
+vi.mock("@/lib/generations.js", () => ({ listByUser: vi.fn() }));
+
+const get = (query = "") => new Request(`http://test/api/gallery${query}`);
+
+const load = async () => {
+  const { auth } = await import("@clerk/nextjs/server");
+  const { listByUser } = await import("@/lib/generations.js");
+  const { GET } = await import("./route.js");
+  return { GET, auth, listByUser };
+};
+
+beforeEach(async () => {
+  vi.clearAllMocks();
+  const { auth, listByUser } = await load();
+  auth.mockResolvedValue({ userId: "user-1" });
+  listByUser.mockResolvedValue({ items: [ITEM_IMAGE, ITEM_PENDING_VIDEO], hasMore: true });
+});
+
+describe("GET /api/gallery", () => {
+  it("returns 200 with items, hasMore and a page defaulting to 0", async () => {
+    const { GET, listByUser } = await load();
+
+    const response = await GET(get());
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      items: [ITEM_IMAGE, ITEM_PENDING_VIDEO],
+      hasMore: true,
+      page: 0,
+    });
+    expect(listByUser).toHaveBeenCalledWith("user-1", 0);
+  });
+
+  it("passes ?page=2 to the module as the integer 2", async () => {
+    const { GET, listByUser } = await load();
+
+    const response = await GET(get("?page=2"));
+
+    expect(response.status).toBe(200);
+    expect(listByUser).toHaveBeenCalledWith("user-1", 2);
+    expect(listByUser.mock.calls[0][1]).toBe(2);
+    await expect(response.json()).resolves.toMatchObject({ page: 2 });
+  });
+
+  // Trap 6: a NaN that becomes skip: NaN reads as an empty page, which looks
+  // exactly like the end of the list.
+  it("returns 400 'Invalid page' for a non-numeric page and reads nothing", async () => {
+    const { GET, listByUser } = await load();
+
+    const response = await GET(get("?page=abc"));
+
+    expect(response.status).toBe(400);
+    await expect(response.text()).resolves.toBe("Invalid page");
+    expect(listByUser).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 'Invalid page' for a negative page and reads nothing", async () => {
+    const { GET, listByUser } = await load();
+
+    const response = await GET(get("?page=-1"));
+
+    expect(response.status).toBe(400);
+    await expect(response.text()).resolves.toBe("Invalid page");
+    expect(listByUser).not.toHaveBeenCalled();
+  });
+
+  // FR-003: checked by the route itself, not trusted to the route matcher.
+  it("returns 401 'Unauthorized' when there is no session, and reads nothing", async () => {
+    const { GET, auth, listByUser } = await load();
+    auth.mockResolvedValue({ userId: null });
+
+    const response = await GET(get());
+
+    expect(response.status).toBe(401);
+    await expect(response.text()).resolves.toBe("Unauthorized");
+    expect(listByUser).not.toHaveBeenCalled();
+  });
+
+  it("calls auth() itself rather than trusting the route matcher", async () => {
+    const { GET, auth } = await load();
+
+    await GET(get());
+
+    expect(auth).toHaveBeenCalled();
+  });
+
+  // FR-002, SC-001: the userId comes from the session and never from the request.
+  it("always lists the session's own userId, never one from the request", async () => {
+    const { GET, listByUser } = await load();
+
+    await GET(get("?page=0&userId=somebody-else"));
+
+    expect(listByUser).toHaveBeenCalledWith("user-1", 0);
+    expect(JSON.stringify(listByUser.mock.calls)).not.toContain("somebody-else");
+  });
+
+  it("returns 200 with an empty items array for a page past the last one", async () => {
+    const { GET, listByUser } = await load();
+    listByUser.mockResolvedValue({ items: [], hasMore: false });
+
+    const response = await GET(get("?page=99"));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ items: [], hasMore: false, page: 99 });
+  });
+});
+```
+
+### `app/api/generation/[id]/publish/route.js`
+
+```js
+import { auth } from "@clerk/nextjs/server";
+import { setPublished } from "@/lib/generations.js";
+
+// The module answers with one of three words; this route only maps them.
+// "not-found" covers an unknown id, an unparseable id and a generation owned by
+// somebody else — the same non-disclosure pattern /api/settings uses. The
+// ownership check lives in setPublished's filter, not here.
+const status = { ok: 200, "not-found": 404, "not-ready": 409 };
+const message = { "not-found": "Not found", "not-ready": "Generation is not ready" };
+
+export const POST = async (request, { params }) => {
+  const { userId } = await auth();
+  if (!userId) return new Response("Unauthorized", { status: 401 });
+
+  // Independent, so they are awaited together rather than one after the other.
+  const [{ id }, { isPublic }] = await Promise.all([params, request.json()]);
+
+  if (typeof isPublic !== "boolean") {
+    return new Response("Invalid isPublic", { status: 400 });
+  }
+
+  try {
+    const result = await setPublished(id, userId, isPublic);
+    if (result !== "ok") {
+      return new Response(message[result], { status: status[result] });
+    }
+
+    return Response.json({ id, isPublic });
+  } catch (error) {
+    return new Response(error.message, { status: error.status || 500 });
+  }
+};
+```
+
+### `app/api/generation/[id]/publish/route.test.js`
+
+```js
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+vi.mock("@clerk/nextjs/server", () => ({ auth: vi.fn() }));
+vi.mock("@/lib/generations.js", () => ({ setPublished: vi.fn() }));
+
+const ID = "6702a1b2c3d4e5f601020304";
+
+const post = (body, id = ID) => [
+  new Request(`http://test/api/generation/${id}/publish`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  }),
+  { params: Promise.resolve({ id }) },
+];
+
+const load = async () => {
+  const { auth } = await import("@clerk/nextjs/server");
+  const { setPublished } = await import("@/lib/generations.js");
+  const { POST } = await import("./route.js");
+  return { POST, auth, setPublished };
+};
+
+beforeEach(async () => {
+  vi.clearAllMocks();
+  const { auth, setPublished } = await load();
+  auth.mockResolvedValue({ userId: "user-1" });
+  setPublished.mockResolvedValue("ok");
+});
+
+describe("POST /api/generation/[id]/publish", () => {
+  it("returns 200 { id, isPublic } for an owner publishing a ready generation", async () => {
+    const { POST, setPublished } = await load();
+
+    const response = await POST(...post({ isPublic: true }));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ id: ID, isPublic: true });
+    expect(setPublished).toHaveBeenCalledWith(ID, "user-1", true);
+  });
+
+  it("unpublishes through the same route", async () => {
+    const { POST, setPublished } = await load();
+
+    const response = await POST(...post({ isPublic: false }));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ id: ID, isPublic: false });
+    expect(setPublished).toHaveBeenCalledWith(ID, "user-1", false);
+  });
+
+  it("is idempotent: publishing an already-public generation is a 200 no-op", async () => {
+    const { POST } = await load();
+
+    const first = await POST(...post({ isPublic: true }));
+    const second = await POST(...post({ isPublic: true }));
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    await expect(second.json()).resolves.toEqual({ id: ID, isPublic: true });
+  });
+
+  const invalidBodies = [
+    ["the field is missing", {}],
+    ["the field is a string", { isPublic: "true" }],
+    ["the field is a number", { isPublic: 1 }],
+    ["the field is null", { isPublic: null }],
+  ];
+
+  invalidBodies.forEach(([name, body]) => {
+    it(`returns 400 'Invalid isPublic' when ${name}, and writes nothing`, async () => {
+      const { POST, setPublished } = await load();
+
+      const response = await POST(...post(body));
+
+      expect(response.status).toBe(400);
+      await expect(response.text()).resolves.toBe("Invalid isPublic");
+      expect(setPublished).not.toHaveBeenCalled();
+    });
+  });
+
+  it("returns 401 'Unauthorized' with no session, and writes nothing", async () => {
+    const { POST, auth, setPublished } = await load();
+    auth.mockResolvedValue({ userId: null });
+
+    const response = await POST(...post({ isPublic: true }));
+
+    expect(response.status).toBe(401);
+    await expect(response.text()).resolves.toBe("Unauthorized");
+    expect(setPublished).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 'Not found' for an unknown id", async () => {
+    const { POST, setPublished } = await load();
+    setPublished.mockResolvedValue("not-found");
+
+    const response = await POST(...post({ isPublic: true }, "6702a1b2c3d4e5f601029999"));
+
+    expect(response.status).toBe(404);
+    await expect(response.text()).resolves.toBe("Not found");
+  });
+
+  it("returns 404 'Not found' for an unparseable id rather than a 500", async () => {
+    const { POST, setPublished } = await load();
+    setPublished.mockResolvedValue("not-found");
+
+    const response = await POST(...post({ isPublic: true }, "not-an-object-id"));
+
+    expect(response.status).toBe(404);
+    await expect(response.text()).resolves.toBe("Not found");
+  });
+
+  // FR-015, SC-005, trap 5: a non-owner is a 404, not a 403, and the record is
+  // left untouched. The ownership check is the userId inside setPublished's
+  // filter; the route holds none of its own.
+  it("returns 404 for a generation owned by somebody else and leaves it unchanged", async () => {
+    const { POST, setPublished } = await load();
+    const stored = Object.freeze({ _id: ID, userId: "somebody-else", isPublic: false });
+    setPublished.mockImplementation(async () => "not-found");
+
+    const response = await POST(...post({ isPublic: true }));
+
+    expect(response.status).toBe(404);
+    await expect(response.text()).resolves.toBe("Not found");
+    expect(stored).toEqual({ _id: ID, userId: "somebody-else", isPublic: false });
+    expect(setPublished).toHaveBeenCalledWith(ID, "user-1", true);
+  });
+
+  it("holds no ownership check of its own: it passes the session userId straight to the module", async () => {
+    const { POST, setPublished } = await load();
+    const source = (await import("node:fs")).readFileSync(
+      `${process.cwd()}/app/api/generation/[id]/publish/route.js`,
+      "utf8"
+    );
+
+    await POST(...post({ isPublic: true }));
+
+    expect(setPublished.mock.calls[0][1]).toBe("user-1");
+    expect(source).not.toMatch(/403/);
+    expect(source).not.toMatch(/\.userId\s*===/);
+  });
+
+  // FR-016.
+  it("returns 409 'Generation is not ready' when publishing something not ready", async () => {
+    const { POST, setPublished } = await load();
+    setPublished.mockResolvedValue("not-ready");
+
+    const response = await POST(...post({ isPublic: true }));
+
+    expect(response.status).toBe(409);
+    await expect(response.text()).resolves.toBe("Generation is not ready");
+  });
+
+  // FR-017: unpublishing works at any status.
+  it("unpublishes a generation at any status", async () => {
+    const { POST, setPublished } = await load();
+    setPublished.mockResolvedValue("ok");
+
+    const response = await POST(...post({ isPublic: false }));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ id: ID, isPublic: false });
+  });
+});
+```
+
 ### `app/api/image/route.js`
 
 ```js
@@ -2871,14 +4113,19 @@ import { generations } from "@/lib/db.js";
 import { assertEnabled } from "@/lib/settings.js";
 import { generateImage } from "@/lib/higgsfield.js";
 import { store } from "@/lib/blob.js";
+import { buildHint, LEVELLED } from "@/lib/emotions.js";
 
 export const POST = async (request) => {
   const { userId } = await auth();
   if (!userId) return new Response("Unauthorized", { status: 401 });
 
-  const { photo, hint } = await request.json();
+  const { photo, emotion, level } = await request.json();
 
   try {
+    // Validation precedes the spend switch: an invalid emotion is a 400 even
+    // while generation is paused, and neither path contacts a provider.
+    const hint = buildHint(emotion, level);
+
     await assertEnabled();
 
     // Higgsfield takes a public image_url, not bytes, so the photo goes to blob first.
@@ -2894,6 +4141,11 @@ export const POST = async (request) => {
       status: "ready",
       url: imageUrl,
       createdAt: new Date(),
+      emotion,
+      // Written only for the emotions that carry one: a happy record has no
+      // level key at all, which is what the read-time default reads as null.
+      ...(LEVELLED.includes(emotion) ? { level } : {}),
+      isPublic: false,
     });
 
     return Response.json({ imageUrl });
@@ -2917,6 +4169,9 @@ vi.mock("@/lib/settings.js", () => ({ getSettings: vi.fn(), assertEnabled: vi.fn
 vi.mock("@/lib/higgsfield.js", () => ({ generateImage: vi.fn() }));
 vi.mock("@/lib/blob.js", () => ({ store: vi.fn() }));
 
+// lib/emotions.js is deliberately not mocked: the strings it composes are the
+// contract with the provider, and this route is where they are spent.
+
 const post = (body) =>
   new Request("http://test/api/image", { method: "POST", body: JSON.stringify(body) });
 
@@ -2934,6 +4189,12 @@ const load = async () => {
   return { POST, ...mocks };
 };
 
+const pause = () => {
+  const paused = new Error("Generation is paused");
+  paused.status = 503;
+  return paused;
+};
+
 beforeEach(async () => {
   vi.clearAllMocks();
   collection = new FakeCollection();
@@ -2949,29 +4210,106 @@ beforeEach(async () => {
 });
 
 describe("POST /api/image", () => {
-  it("returns 200 with the stored image url for a photo and a hint", async () => {
-    const { POST, generateImage } = await load();
+  it("returns 200 with the stored image url for a photo and an emotion", async () => {
+    const { POST } = await load();
 
-    const response = await POST(post({ photo: PHOTO_DATA_URL, hint: "make it a watercolour" }));
+    const response = await POST(post({ photo: PHOTO_DATA_URL, emotion: "happy" }));
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ imageUrl: BLOB_URL });
-    expect(generateImage).toHaveBeenCalledWith(BLOB_URL, "make it a watercolour");
   });
 
-  it("generates from the photo alone when there is no hint", async () => {
+  // Unchanged from 001: the happy string the provider sees is the same one.
+  it("sends exactly 'I am feeling happy 😊' to the provider for a happy request", async () => {
     const { POST, generateImage } = await load();
 
-    const response = await POST(post({ photo: PHOTO_DATA_URL }));
+    await POST(post({ photo: PHOTO_DATA_URL, emotion: "happy" }));
 
-    expect(response.status).toBe(200);
-    expect(generateImage.mock.calls[0][1]).toBeUndefined();
+    expect(generateImage).toHaveBeenCalledWith(BLOB_URL, "I am feeling happy 😊");
   });
 
-  it("writes a generations record with the user, kind, status, url and timestamp", async () => {
+  it("composes the level into the hint for a levelled emotion", async () => {
+    const { POST, generateImage } = await load();
+
+    await POST(post({ photo: PHOTO_DATA_URL, emotion: "angry", level: "very" }));
+
+    expect(generateImage).toHaveBeenCalledWith(BLOB_URL, "I am feeling very angry 😠");
+  });
+
+  it("no longer reads hint from the request body", async () => {
+    const { POST, generateImage } = await load();
+
+    const response = await POST(
+      post({ photo: PHOTO_DATA_URL, emotion: "happy", hint: "make it a watercolour" })
+    );
+
+    expect(response.status).toBe(200);
+    expect(generateImage).toHaveBeenCalledWith(BLOB_URL, "I am feeling happy 😊");
+  });
+
+  it("returns 400 for a request carrying only a hint, now that hint is gone", async () => {
+    const { POST, generateImage } = await load();
+
+    const response = await POST(post({ photo: PHOTO_DATA_URL, hint: "happy" }));
+
+    expect(response.status).toBe(400);
+    await expect(response.text()).resolves.toBe("Unknown emotion");
+    expect(generateImage).not.toHaveBeenCalled();
+  });
+});
+
+// FR-011, SC-002: validation precedes every spend.
+describe("POST /api/image — validation before any spend", () => {
+  const invalid = [
+    ["an emotion outside the three", { emotion: "adventurous" }, "Unknown emotion"],
+    ["no emotion at all", {}, "Unknown emotion"],
+    ["a level outside the three", { emotion: "sad", level: "somewhat" }, "Unknown level"],
+    ["a levelled emotion with no level", { emotion: "sad" }, "Unknown level"],
+    ["a level on happy", { emotion: "happy", level: "quite" }, "happy takes no level"],
+  ];
+
+  invalid.forEach(([name, body, message]) => {
+    it(`returns 400 '${message}' for ${name}, with zero calls to any paid provider`, async () => {
+      const { POST, generateImage, store } = await load();
+
+      const response = await POST(post({ photo: PHOTO_DATA_URL, ...body }));
+
+      expect(response.status).toBe(400);
+      await expect(response.text()).resolves.toBe(message);
+      expect(generateImage).not.toHaveBeenCalled();
+      expect(store).not.toHaveBeenCalled();
+      expect(collection.docs).toHaveLength(0);
+    });
+  });
+
+  // FR-028: a 400 wins over a 503, and neither path contacts a provider.
+  it("returns the 400 rather than the 503 when generation is paused", async () => {
+    const { POST, assertEnabled, generateImage, store } = await load();
+    assertEnabled.mockRejectedValue(pause());
+
+    const response = await POST(post({ photo: PHOTO_DATA_URL, emotion: "adventurous" }));
+
+    expect(response.status).toBe(400);
+    await expect(response.text()).resolves.toBe("Unknown emotion");
+    expect(generateImage).not.toHaveBeenCalled();
+    expect(store).not.toHaveBeenCalled();
+  });
+
+  it("validates before it reaches the spend switch at all", async () => {
+    const { POST, assertEnabled } = await load();
+
+    await POST(post({ photo: PHOTO_DATA_URL, emotion: "adventurous" }));
+
+    expect(assertEnabled).not.toHaveBeenCalled();
+  });
+});
+
+// T026: the record this route writes.
+describe("POST /api/image — the record it writes", () => {
+  it("writes the user, kind, status, url and timestamp exactly as 001 did", async () => {
     const { POST } = await load();
 
-    await POST(post({ photo: PHOTO_DATA_URL }));
+    await POST(post({ photo: PHOTO_DATA_URL, emotion: "happy" }));
 
     expect(collection.docs).toHaveLength(1);
     expect(collection.docs[0]).toMatchObject({
@@ -2983,11 +4321,38 @@ describe("POST /api/image", () => {
     expect(collection.docs[0].createdAt).toBeInstanceOf(Date);
   });
 
+  it("records the emotion and isPublic: false at insert", async () => {
+    const { POST } = await load();
+
+    await POST(post({ photo: PHOTO_DATA_URL, emotion: "happy" }));
+
+    expect(collection.docs[0]).toMatchObject({ emotion: "happy", isPublic: false });
+  });
+
+  // FR-012, FR-014: a happy record carries no level key at all.
+  it("writes no level key for an emotion that takes none", async () => {
+    const { POST } = await load();
+
+    await POST(post({ photo: PHOTO_DATA_URL, emotion: "happy" }));
+
+    expect(collection.docs[0]).not.toHaveProperty("level");
+  });
+
+  it("writes the level only for an emotion in LEVELLED", async () => {
+    const { POST } = await load();
+
+    await POST(post({ photo: PHOTO_DATA_URL, emotion: "sad", level: "a bit" }));
+
+    expect(collection.docs[0]).toMatchObject({ emotion: "sad", level: "a bit", isPublic: false });
+  });
+});
+
+describe("POST /api/image — the 001 status codes, untouched", () => {
   it("returns 401 for an anonymous caller and touches no provider", async () => {
     const { POST, auth, generateImage } = await load();
     auth.mockResolvedValue({ userId: null });
 
-    const response = await POST(post({ photo: PHOTO_DATA_URL }));
+    const response = await POST(post({ photo: PHOTO_DATA_URL, emotion: "happy" }));
 
     expect(response.status).toBe(401);
     expect(generateImage).not.toHaveBeenCalled();
@@ -2995,11 +4360,9 @@ describe("POST /api/image", () => {
 
   it("returns 503 'Generation is paused' when the kill switch is off", async () => {
     const { POST, assertEnabled, generateImage } = await load();
-    const paused = new Error("Generation is paused");
-    paused.status = 503;
-    assertEnabled.mockRejectedValue(paused);
+    assertEnabled.mockRejectedValue(pause());
 
-    const response = await POST(post({ photo: PHOTO_DATA_URL }));
+    const response = await POST(post({ photo: PHOTO_DATA_URL, emotion: "happy" }));
 
     expect(response.status).toBe(503);
     await expect(response.text()).resolves.toBe("Generation is paused");
@@ -3010,9 +4373,10 @@ describe("POST /api/image", () => {
     const { POST, generateImage } = await load();
     generateImage.mockRejectedValue(new Error("Image provider returned no image"));
 
-    const response = await POST(post({ photo: PHOTO_DATA_URL }));
+    const response = await POST(post({ photo: PHOTO_DATA_URL, emotion: "happy" }));
 
     expect(response.ok).toBe(false);
+    expect(response.status).toBe(500);
     expect(collection.docs).toHaveLength(0);
   });
 });
@@ -3067,7 +4431,7 @@ describe("phase 3 backend", () => {
   });
 
   it("creates an image record when generation succeeds", async () => {
-    const response = await createImage(makeRequest({ photo: "data:image/png;base64,AAAA", hint: "happy" }));
+    const response = await createImage(makeRequest({ photo: "data:image/png;base64,AAAA", emotion: "happy" }));
     expect(response.status).toBe(200);
     const json = await response.json();
     expect(json.imageUrl).toContain("https://blob.test/");
@@ -3509,7 +4873,624 @@ describe("POST /api/video", () => {
 });
 ```
 
+### `app/api/wall/route.js`
+
+```js
+import { listPublic } from "@/lib/generations.js";
+
+// Same rule as the gallery route, five lines rather than a shared helper: the
+// two modules this feature may add to are frozen, and a route is not a library.
+const parsePage = (url) => {
+  const raw = new URL(url).searchParams.get("page");
+  if (raw === null) return 0;
+  return /^\d+$/.test(raw) ? Number(raw) : null;
+};
+
+// No auth() call, no 401 row, no redirect: the wall is public (FR-018).
+export const GET = async (request) => {
+  const page = parsePage(request.url);
+  if (page === null) return new Response("Invalid page", { status: 400 });
+
+  try {
+    const { items, hasMore } = await listPublic(page);
+    return Response.json({ items, hasMore, page });
+  } catch (error) {
+    return new Response(error.message, { status: error.status || 500 });
+  }
+};
+```
+
+### `app/api/wall/route.test.js`
+
+```js
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { ITEM_IMAGE, ITEM_PRE_002 } from "@/test/fixtures.js";
+
+// Mocked only so the test can assert it is never called: the wall has no 401
+// row and its absence is deliberate (FR-018).
+vi.mock("@clerk/nextjs/server", () => ({ auth: vi.fn() }));
+vi.mock("@/lib/generations.js", () => ({ listPublic: vi.fn() }));
+
+const published = (item) => ({ ...item, isPublic: true });
+
+const get = (query = "") => new Request(`http://test/api/wall${query}`);
+
+const load = async () => {
+  const { auth } = await import("@clerk/nextjs/server");
+  const { listPublic } = await import("@/lib/generations.js");
+  const { GET } = await import("./route.js");
+  return { GET, auth, listPublic };
+};
+
+beforeEach(async () => {
+  vi.clearAllMocks();
+  const { auth, listPublic } = await load();
+  // No session at all, for every case in this file.
+  auth.mockResolvedValue({ userId: null });
+  listPublic.mockResolvedValue({
+    items: [published(ITEM_IMAGE), published(ITEM_PRE_002)],
+    hasMore: true,
+  });
+});
+
+describe("GET /api/wall", () => {
+  it("returns 200 with items, hasMore and a page defaulting to 0 for a caller with no session", async () => {
+    const { GET, listPublic } = await load();
+
+    const response = await GET(get());
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      items: [published(ITEM_IMAGE), published(ITEM_PRE_002)],
+      hasMore: true,
+      page: 0,
+    });
+    expect(listPublic).toHaveBeenCalledWith(0);
+  });
+
+  // FR-018, SC-004.
+  it("never calls auth(), never returns 401 and never redirects", async () => {
+    const { GET, auth } = await load();
+
+    const response = await GET(get());
+
+    expect(auth).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(response.status).not.toBe(401);
+    expect(response.headers.get("location")).toBeNull();
+  });
+
+  it("passes ?page=N to listPublic as an integer and echoes it", async () => {
+    const { GET, listPublic } = await load();
+
+    const response = await GET(get("?page=3"));
+
+    expect(listPublic).toHaveBeenCalledWith(3);
+    expect(listPublic.mock.calls[0][0]).toBe(3);
+    expect(listPublic.mock.calls[0]).toHaveLength(1);
+    await expect(response.json()).resolves.toMatchObject({ page: 3 });
+  });
+
+  it("returns 400 'Invalid page' for a non-numeric page and reads nothing", async () => {
+    const { GET, listPublic } = await load();
+
+    const response = await GET(get("?page=abc"));
+
+    expect(response.status).toBe(400);
+    await expect(response.text()).resolves.toBe("Invalid page");
+    expect(listPublic).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 'Invalid page' for a negative page and reads nothing", async () => {
+    const { GET, listPublic } = await load();
+
+    const response = await GET(get("?page=-1"));
+
+    expect(response.status).toBe(400);
+    await expect(response.text()).resolves.toBe("Invalid page");
+    expect(listPublic).not.toHaveBeenCalled();
+  });
+
+  it("serves only published generations", async () => {
+    const { GET } = await load();
+
+    const response = await GET(get());
+
+    const { items } = await response.json();
+    expect(items).not.toHaveLength(0);
+    expect(items.every((item) => item.isPublic === true)).toBe(true);
+  });
+
+  it("returns 200 with an empty items array for a page past the last one", async () => {
+    const { GET, listPublic } = await load();
+    listPublic.mockResolvedValue({ items: [], hasMore: false });
+
+    const response = await GET(get("?page=99"));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ items: [], hasMore: false, page: 99 });
+  });
+});
+```
+
 ## Components
+
+### `components/Nav.test.jsx`
+
+```jsx
+import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+
+const user = { current: { publicMetadata: {} } };
+
+vi.mock("@clerk/nextjs", () => ({
+  UserButton: () => null,
+  useUser: () => ({ user: user.current }),
+}));
+
+const renderNav = async () => {
+  const { Nav } = await import("./Nav.jsx");
+  return render(<Nav />);
+};
+
+describe("Nav", () => {
+  it("links to the gallery and the wall beside the existing capture link", async () => {
+    user.current = { publicMetadata: {} };
+
+    await renderNav();
+
+    expect(screen.getByRole("link", { name: "Capture" })).toHaveAttribute("href", "/capture");
+    expect(screen.getByRole("link", { name: "Gallery" })).toHaveAttribute("href", "/gallery");
+    expect(screen.getByRole("link", { name: "Wall" })).toHaveAttribute("href", "/wall");
+  });
+
+  it("hides the dashboard link from a non-admin", async () => {
+    user.current = { publicMetadata: { role: "user" } };
+
+    await renderNav();
+
+    expect(screen.queryByRole("link", { name: "Dashboard" })).toBeNull();
+  });
+
+  it("still shows the dashboard link to an admin", async () => {
+    user.current = { publicMetadata: { role: "admin" } };
+
+    await renderNav();
+
+    expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute("href", "/dashboard");
+  });
+
+  it("renders for a signed-out visitor without failing", async () => {
+    user.current = null;
+
+    await renderNav();
+
+    expect(screen.getByRole("link", { name: "Wall" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Dashboard" })).toBeNull();
+  });
+});
+```
+
+### `components/capture/CameraCapture.jsx`
+
+```jsx
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui";
+
+const stopStream = (stream) => stream?.getTracks().forEach((track) => track.stop());
+
+// A denied camera says nothing: the file picker beside this control is still
+// the whole flow, so there is no error copy here (FR-024).
+export function CameraCapture({ onPhoto, disabled }) {
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+  const [facingMode, setFacingMode] = useState("environment");
+  const [isOn, setIsOn] = useState(false);
+
+  // ponytail: the one useEffect in this feature. Leaving the screen is not an
+  // event a handler sees, and FR-025 requires the camera released when the
+  // reader leaves, so the cleanup is the only place that release can live.
+  useEffect(() => () => stopStream(streamRef.current), []);
+
+  const start = async (mode) => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: mode } });
+
+      // The previous stream is released before the new preview is attached.
+      stopStream(streamRef.current);
+      streamRef.current = stream;
+      setFacingMode(mode);
+      setIsOn(true);
+
+      if (videoRef.current) videoRef.current.srcObject = stream;
+    } catch {
+      stop();
+    }
+  };
+
+  const stop = () => {
+    stopStream(streamRef.current);
+    streamRef.current = null;
+    setIsOn(false);
+  };
+
+  const take = () => {
+    const video = videoRef.current;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth || 720;
+    canvas.height = video.videoHeight || 720;
+    canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    canvas.toBlob((blob) => {
+      // A Blob is not a File, and the rest of the flow expects what the file
+      // picker produces, so the conversion happens here at the boundary.
+      onPhoto(new File([blob], `camera-${Date.now()}.png`, { type: blob.type || "image/png" }));
+      stop();
+    }, "image/png");
+  };
+
+  if (!isOn) {
+    return (
+      <Button
+        type="button"
+        variant="secondary"
+        onClick={() => start(facingMode)}
+        disabled={disabled}
+        className="w-full"
+      >
+        Turn camera on
+      </Button>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <video
+        ref={(node) => {
+          videoRef.current = node;
+          if (node && streamRef.current) node.srcObject = streamRef.current;
+        }}
+        autoPlay
+        playsInline
+        muted
+        className="aspect-square w-full rounded-[8px] border border-hairline bg-surface-2 object-cover"
+      />
+      <div className="flex flex-col gap-2 md:flex-row">
+        <Button type="button" onClick={take} className="w-full md:flex-1">
+          Take photo
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => start(facingMode === "environment" ? "user" : "environment")}
+          className="w-full md:flex-1"
+        >
+          Switch camera
+        </Button>
+        <Button type="button" variant="tertiary" onClick={stop} className="w-full md:flex-1">
+          Turn camera off
+        </Button>
+      </div>
+    </div>
+  );
+}
+```
+
+### `components/capture/CameraCapture.test.jsx`
+
+```jsx
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { CameraCapture } from "./CameraCapture.jsx";
+
+// Trap 1: navigator.mediaDevices is absent in jsdom — not undefined on an
+// existing object. It has to be defined before it can be stubbed.
+let getUserMedia;
+let streams;
+
+const fakeStream = () => {
+  const stream = { tracks: [{ stop: vi.fn() }, { stop: vi.fn() }] };
+  stream.getTracks = () => stream.tracks;
+  streams.push(stream);
+  return stream;
+};
+
+const defineMediaDevices = (value) =>
+  Object.defineProperty(navigator, "mediaDevices", { value, configurable: true, writable: true });
+
+beforeEach(() => {
+  streams = [];
+  getUserMedia = vi.fn(async () => fakeStream());
+  defineMediaDevices({ getUserMedia });
+
+  // Trap 3: canvas.toBlob gives a Blob; the component converts it to a File.
+  HTMLCanvasElement.prototype.getContext = vi.fn(() => ({ drawImage: vi.fn() }));
+  HTMLCanvasElement.prototype.toBlob = vi.fn((callback) =>
+    callback(new Blob(["photo-bytes"], { type: "image/png" }))
+  );
+  HTMLMediaElement.prototype.play = vi.fn(async () => {});
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  defineMediaDevices(undefined);
+});
+
+const turnOn = () => screen.getByRole("button", { name: "Turn camera on" });
+const stoppedTracks = (stream) => stream.tracks.every((track) => track.stop.mock.calls.length > 0);
+
+describe("CameraCapture", () => {
+  it("previews inside the page when the camera is turned on", async () => {
+    render(<CameraCapture onPhoto={vi.fn()} />);
+
+    await userEvent.click(turnOn());
+
+    await waitFor(() => expect(document.querySelector("video")).toBeInTheDocument());
+    expect(getUserMedia).toHaveBeenCalledWith({ video: { facingMode: "environment" } });
+    expect(document.querySelector("video").srcObject).toBe(streams[0]);
+  });
+
+  it("offers take, switch and off once it is on", async () => {
+    render(<CameraCapture onPhoto={vi.fn()} />);
+
+    await userEvent.click(turnOn());
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Take photo" })).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "Switch camera" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Turn camera off" })).toBeInTheDocument();
+  });
+
+  it("hands back a File, not a Blob, and stops every track", async () => {
+    const onPhoto = vi.fn();
+    render(<CameraCapture onPhoto={onPhoto} />);
+
+    await userEvent.click(turnOn());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Take photo" })).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: "Take photo" }));
+
+    await waitFor(() => expect(onPhoto).toHaveBeenCalled());
+    const file = onPhoto.mock.calls[0][0];
+    expect(file).toBeInstanceOf(File);
+    expect(file.type).toBe("image/png");
+    expect(file.name).toBeTruthy();
+    expect(stoppedTracks(streams[0])).toBe(true);
+  });
+
+  // FR-025, SC-008.
+  it("stops every track when it unmounts", async () => {
+    const { unmount } = render(<CameraCapture onPhoto={vi.fn()} />);
+
+    await userEvent.click(turnOn());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Take photo" })).toBeInTheDocument());
+    unmount();
+
+    await waitFor(() => expect(stoppedTracks(streams[0])).toBe(true));
+  });
+
+  it("stops every track when the camera is turned off", async () => {
+    render(<CameraCapture onPhoto={vi.fn()} />);
+
+    await userEvent.click(turnOn());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Turn camera off" })).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: "Turn camera off" }));
+
+    await waitFor(() => expect(stoppedTracks(streams[0])).toBe(true));
+    expect(document.querySelector("video")).toBeNull();
+    expect(turnOn()).toBeInTheDocument();
+  });
+
+  // FR-026.
+  it("stops the previous stream's tracks before the new preview appears", async () => {
+    render(<CameraCapture onPhoto={vi.fn()} />);
+
+    await userEvent.click(turnOn());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Switch camera" })).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: "Switch camera" }));
+
+    await waitFor(() => expect(streams).toHaveLength(2));
+    expect(stoppedTracks(streams[0])).toBe(true);
+    expect(stoppedTracks(streams[1])).toBe(false);
+    expect(getUserMedia).toHaveBeenLastCalledWith({ video: { facingMode: "user" } });
+    expect(document.querySelector("video").srcObject).toBe(streams[1]);
+  });
+
+  // FR-024: a denial is silent. The file picker is still there.
+  it("renders no error text at all when getUserMedia is denied", async () => {
+    getUserMedia.mockRejectedValue(new DOMException("Permission denied", "NotAllowedError"));
+    render(<CameraCapture onPhoto={vi.fn()} />);
+
+    await userEvent.click(turnOn());
+
+    await waitFor(() => expect(getUserMedia).toHaveBeenCalled());
+    expect(document.querySelector("video")).toBeNull();
+    expect(screen.queryByText(/denied|error|failed|allow|permission|unavailable/i)).toBeNull();
+  });
+
+  it("renders no error text when mediaDevices is absent altogether", async () => {
+    defineMediaDevices(undefined);
+    render(<CameraCapture onPhoto={vi.fn()} />);
+
+    await userEvent.click(turnOn());
+
+    expect(document.querySelector("video")).toBeNull();
+    expect(screen.queryByText(/denied|error|failed|allow|permission|unavailable/i)).toBeNull();
+  });
+});
+```
+
+### `components/capture/EmotionPicker.jsx`
+
+```jsx
+import { EMOTIONS, LEVELS, LEVELLED } from "@/lib/emotions.js";
+
+// The lists come from lib/emotions.js, never retyped. buildHint is not called
+// here: the screen posts the emotion and the level, and the server composes the
+// string the provider sees.
+const selectClass =
+  "h-11 rounded-[8px] border border-hairline bg-surface-1 px-3 text-ink focus:outline-2 focus:outline-offset-2 focus:outline-primary-focus/50";
+
+export function EmotionPicker({ emotion, level, onChange, disabled }) {
+  const takesLevel = LEVELLED.includes(emotion);
+
+  const handleEmotion = (next) =>
+    // Switching to an emotion that takes no level clears the level (FR-013).
+    onChange({ emotion: next, level: LEVELLED.includes(next) ? level ?? LEVELS[1] : undefined });
+
+  return (
+    <div className="flex flex-col gap-2 md:flex-row md:gap-4">
+      <div className="flex flex-1 flex-col gap-2">
+        <label htmlFor="emotion" className="body-sm text-ink-muted">
+          Emotion
+        </label>
+        <select
+          id="emotion"
+          value={emotion}
+          onChange={(event) => handleEmotion(event.target.value)}
+          disabled={disabled}
+          className={selectClass}
+        >
+          {EMOTIONS.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {takesLevel && (
+        <div className="flex flex-1 flex-col gap-2">
+          <label htmlFor="level" className="body-sm text-ink-muted">
+            Level
+          </label>
+          <select
+            id="level"
+            value={level ?? LEVELS[1]}
+            onChange={(event) => onChange({ emotion, level: event.target.value })}
+            disabled={disabled}
+            className={selectClass}
+          >
+            {LEVELS.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+### `components/capture/EmotionPicker.test.jsx`
+
+```jsx
+import { useState } from "react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, it, expect, vi } from "vitest";
+import { EMOTIONS, LEVELS, LEVELLED } from "@/lib/emotions.js";
+import { EmotionPicker } from "./EmotionPicker.jsx";
+
+// A controlled pair, driven the way the capture screen drives it.
+const Harness = ({ onChange = () => {} } = {}) => {
+  const [state, setState] = useState({ emotion: EMOTIONS[0], level: undefined });
+
+  return (
+    <EmotionPicker
+      emotion={state.emotion}
+      level={state.level}
+      onChange={(next) => {
+        setState(next);
+        onChange(next);
+      }}
+    />
+  );
+};
+
+const emotionSelect = () => screen.getByLabelText("Emotion");
+const levelSelect = () => screen.getByLabelText("Level");
+
+describe("EmotionPicker", () => {
+  it("offers exactly the three emotions, with happy selected and no free-text alternative", () => {
+    render(<Harness />);
+
+    const options = [...emotionSelect().options].map((option) => option.value);
+    expect(options).toEqual(["happy", "angry", "sad"]);
+    expect(emotionSelect().value).toBe("happy");
+    expect(document.querySelector('input[type="text"]')).toBeNull();
+  });
+
+  it("takes its lists from lib/emotions.js rather than retyping them", () => {
+    render(<Harness />);
+
+    const options = [...emotionSelect().options];
+    expect(options.map((option) => option.value)).toEqual(EMOTIONS);
+    expect(options.map((option) => option.textContent)).toEqual(EMOTIONS);
+  });
+
+  it("shows no level selector for happy", () => {
+    render(<Harness />);
+
+    expect(screen.queryByLabelText("Level")).toBeNull();
+  });
+
+  it("reveals a level selector with quite preselected when angry is chosen", async () => {
+    const onChange = vi.fn();
+    render(<Harness onChange={onChange} />);
+
+    await userEvent.selectOptions(emotionSelect(), "angry");
+
+    expect(levelSelect().value).toBe("quite");
+    expect([...levelSelect().options].map((option) => option.value)).toEqual(["a bit", "quite", "very"]);
+    expect([...levelSelect().options].map((option) => option.textContent)).toEqual(LEVELS);
+    expect(onChange).toHaveBeenCalledWith({ emotion: "angry", level: "quite" });
+  });
+
+  it("reveals the same level selector for sad", async () => {
+    render(<Harness />);
+
+    await userEvent.selectOptions(emotionSelect(), "sad");
+
+    expect(levelSelect().value).toBe("quite");
+    expect(LEVELLED).toContain("sad");
+  });
+
+  it("reports the level the reader picks", async () => {
+    const onChange = vi.fn();
+    render(<Harness onChange={onChange} />);
+
+    await userEvent.selectOptions(emotionSelect(), "sad");
+    await userEvent.selectOptions(levelSelect(), "very");
+
+    expect(onChange).toHaveBeenLastCalledWith({ emotion: "sad", level: "very" });
+  });
+
+  // FR-013: switching back removes the selector and clears the level.
+  it("removes the level selector and clears the level when happy is chosen again", async () => {
+    const onChange = vi.fn();
+    render(<Harness onChange={onChange} />);
+
+    await userEvent.selectOptions(emotionSelect(), "angry");
+    await userEvent.selectOptions(emotionSelect(), "happy");
+
+    expect(screen.queryByLabelText("Level")).toBeNull();
+    expect(onChange).toHaveBeenLastCalledWith({ emotion: "happy", level: undefined });
+  });
+
+  it("labels its two controls Emotion and Level", async () => {
+    render(<Harness />);
+
+    expect(screen.getByText("Emotion")).toBeInTheDocument();
+
+    await userEvent.selectOptions(emotionSelect(), "angry");
+    expect(screen.getByText("Level")).toBeInTheDocument();
+  });
+});
+```
 
 ### `components/capture/GeneratedResult.jsx`
 
@@ -3562,47 +5543,6 @@ export function GeneratedResult({ originalSrc, generatedSrc, onMakeVideo, isLoad
     </div>
   );
 }
-```
-
-### `components/capture/HintInput.jsx`
-
-```jsx
-const moods = [
-  "I am feeling happy 😊",
-  "I am feeling adventurous 🌍",
-  "I am feeling playful 🎉",
-  "I am feeling calm 🧘",
-  "I am feeling energetic ⚡",
-  "I am feeling curious 🔍",
-  "I am feeling confident 💪",
-  "I am feeling dreamy 🌙",
-  "I am feeling grateful 🙏",
-  "I am feeling bold 🔥",
-];
-
-export function HintInput({ value, onChange }) {
-  return (
-    <div className="flex flex-col gap-2">
-      <label htmlFor="mood" className="body-sm text-ink-muted">
-        Mood
-      </label>
-      <select
-        id="mood"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-11 rounded-[8px] border border-hairline bg-surface-1 px-3 text-ink focus:outline-2 focus:outline-offset-2 focus:outline-primary-focus/50"
-      >
-        {moods.map((mood) => (
-          <option key={mood} value={mood}>
-            {mood}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
-export { moods };
 ```
 
 ### `components/capture/PhotoInput.jsx`
@@ -3668,7 +5608,8 @@ export function PhotoPreview({ src, alt = "Selected photo" }) {
 ```js
 export { PhotoInput } from "./PhotoInput";
 export { PhotoPreview } from "./PhotoPreview";
-export { HintInput } from "./HintInput";
+export { EmotionPicker } from "./EmotionPicker";
+export { CameraCapture } from "./CameraCapture";
 export { GeneratedResult } from "./GeneratedResult";
 ```
 
@@ -3721,6 +5662,465 @@ export const SettingsPanel = ({ initial }) => {
     </div>
   );
 };
+```
+
+### `components/gallery/GalleryList.jsx`
+
+```jsx
+"use client";
+
+import { useRef, useState } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui";
+import { GenerationCard } from "./GenerationCard";
+import { PublishToggle } from "./PublishToggle";
+
+// useState and fetch, nothing more. The first page arrives as props from the
+// server render, so there is no useEffect here and nothing fetches on mount.
+export function GalleryList({ items: seed, hasMore: seedHasMore, page: seedPage = 0 }) {
+  const [items, setItems] = useState(() => seed);
+  const [hasMore, setHasMore] = useState(() => seedHasMore);
+  // The page number is never rendered, only read by the handler that asks for
+  // the next one, so it lives in a ref rather than causing a render of its own.
+  const page = useRef(seedPage);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLoadMore = async () => {
+    const next = page.current + 1;
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`/api/gallery?page=${next}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        setItems((current) => [...current, ...data.items]);
+        setHasMore(data.hasMore);
+        page.current = next;
+      }
+    } catch {
+      // The list stays where it is.
+    }
+
+    setIsLoading(false);
+  };
+
+  if (items.length === 0) {
+    return (
+      <div className="flex flex-col items-start gap-2">
+        <p className="body text-ink-subtle">Nothing here yet.</p>
+        <Link href="/capture" className="body text-ink underline">
+          Capture something
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {items.map((item) => (
+          <GenerationCard key={item.id} item={item}>
+            <PublishToggle item={item} />
+          </GenerationCard>
+        ))}
+      </div>
+
+      {hasMore && (
+        <Button type="button" variant="secondary" onClick={handleLoadMore} disabled={isLoading} className="w-full">
+          Load more
+        </Button>
+      )}
+    </div>
+  );
+}
+```
+
+### `components/gallery/GalleryList.test.jsx`
+
+```jsx
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest";
+import { setupServer } from "msw/node";
+import { handlers } from "@/test/msw/handlers.js";
+import { ITEM_IMAGE, ITEM_PENDING_VIDEO, ITEM_PRE_002 } from "@/test/fixtures.js";
+import { GalleryList } from "./GalleryList.jsx";
+
+const server = setupServer(...handlers);
+
+const requests = [];
+
+beforeAll(() => {
+  server.listen({ onUnhandledRequest: "error" });
+  server.events.on("request:start", ({ request }) => requests.push(request.url));
+});
+afterEach(() => {
+  server.resetHandlers();
+  requests.length = 0;
+});
+afterAll(() => server.close());
+
+const items = [ITEM_IMAGE, ITEM_PENDING_VIDEO, ITEM_PRE_002];
+const loadMore = () => screen.getByRole("button", { name: "Load more" });
+
+describe("GalleryList", () => {
+  // FR-006, SC-006: seeded from the server render, nothing on mount.
+  it("renders the items it was seeded with and fetches nothing on mount", async () => {
+    render(<GalleryList items={items} hasMore={true} page={0} />);
+
+    expect(screen.getAllByTestId("card")).toHaveLength(3);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(requests).toHaveLength(0);
+  });
+
+  it("asks for the next page on the Load more click only, and appends the result", async () => {
+    render(<GalleryList items={items} hasMore={true} page={0} />);
+
+    await userEvent.click(loadMore());
+
+    await waitFor(() => expect(screen.getAllByTestId("card").length).toBeGreaterThan(3));
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toContain("/api/gallery?page=1");
+    // The seeded items are still there: the page appends, it does not replace.
+    expect(screen.getAllByRole("img").some((img) => img.getAttribute("src") === ITEM_IMAGE.url)).toBe(true);
+  });
+
+  it("hides the control once the last page has arrived", async () => {
+    render(<GalleryList items={items} hasMore={true} page={0} />);
+
+    await userEvent.click(loadMore());
+
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Load more" })).toBeNull());
+  });
+
+  it("renders no control at all when there is no more to load", () => {
+    render(<GalleryList items={items} hasMore={false} page={0} />);
+
+    expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
+  });
+
+  it("leaves the list untouched when the page request fails", async () => {
+    render(<GalleryList items={items} hasMore={true} page={0} />);
+    const before = screen.getAllByTestId("card").length;
+
+    const { http, HttpResponse } = await import("msw");
+    server.use(http.get("/api/gallery", () => new HttpResponse("Invalid page", { status: 400 })));
+
+    await userEvent.click(loadMore());
+
+    await waitFor(() => expect(loadMore()).toBeEnabled());
+    expect(screen.getAllByTestId("card")).toHaveLength(before);
+  });
+
+  // FR-007.
+  it("renders the empty state with a link to capture when there is nothing to show", () => {
+    render(<GalleryList items={[]} hasMore={false} page={0} />);
+
+    expect(screen.getByText("Nothing here yet.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Capture something" })).toHaveAttribute("href", "/capture");
+    expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
+  });
+
+  it("renders a publish control for each ready item", () => {
+    render(<GalleryList items={items} hasMore={false} page={0} />);
+
+    // Two of the three fixtures are ready; the pending video carries no control.
+    expect(screen.getAllByRole("button", { name: /^(Publish|Unpublish)$/ })).toHaveLength(2);
+  });
+});
+```
+
+### `components/gallery/GenerationCard.jsx`
+
+```jsx
+import { Card, StatusBadge } from "@/components/ui";
+
+// The stored strings, verbatim: no emoji, no capitalisation, no lookup table.
+// This is why the listing screens do not import lib/emotions.js.
+const Asset = ({ item }) => {
+  if (item.status !== "ready" || !item.url) {
+    return <StatusBadge variant="pending">Rendering</StatusBadge>;
+  }
+
+  if (item.kind === "video") {
+    return (
+      <video
+        src={item.url}
+        controls
+        className="aspect-square w-full rounded-[8px] object-contain"
+      />
+    );
+  }
+
+  return (
+    <img
+      src={item.url}
+      alt="Generation"
+      className="aspect-square w-full rounded-[8px] object-contain"
+    />
+  );
+};
+
+export function GenerationCard({ item, children }) {
+  return (
+    <Card className="flex flex-col gap-2">
+      <Asset item={item} />
+
+      {item.emotion && (
+        <span data-testid="emotion" className="body-sm text-ink">
+          {item.emotion}
+        </span>
+      )}
+      {item.level && (
+        <span data-testid="level" className="body-sm text-ink-subtle">
+          {item.level}
+        </span>
+      )}
+
+      {children}
+    </Card>
+  );
+}
+```
+
+### `components/gallery/GenerationCard.test.jsx`
+
+```jsx
+import { render, screen } from "@testing-library/react";
+import { describe, it, expect } from "vitest";
+import { ITEM_IMAGE, ITEM_PENDING_VIDEO, ITEM_PRE_002 } from "@/test/fixtures.js";
+import { GenerationCard } from "./GenerationCard.jsx";
+
+const readyVideo = {
+  ...ITEM_PENDING_VIDEO,
+  status: "ready",
+  url: "https://blob.test/video-1.mp4",
+};
+
+describe("GenerationCard", () => {
+  it("renders an image entry as an image at its own url", () => {
+    render(<GenerationCard item={ITEM_IMAGE} />);
+
+    const image = screen.getByRole("img");
+    expect(image).toHaveAttribute("src", ITEM_IMAGE.url);
+    expect(document.querySelector("video")).toBeNull();
+  });
+
+  it("renders a ready video entry as a player at its own url", () => {
+    render(<GenerationCard item={readyVideo} />);
+
+    const player = document.querySelector("video");
+    expect(player).toHaveAttribute("src", readyVideo.url);
+    expect(screen.queryByRole("img")).toBeNull();
+  });
+
+  // FR-004.
+  it("renders a pending video as a pending badge reading Rendering, with no player", () => {
+    render(<GenerationCard item={ITEM_PENDING_VIDEO} />);
+
+    const badge = screen.getByTestId("status-badge");
+    expect(badge).toHaveTextContent("Rendering");
+    expect(badge.className).toContain("bg-primary");
+    expect(document.querySelector("video")).toBeNull();
+    expect(screen.queryByRole("img")).toBeNull();
+  });
+
+  it("renders an emotion and a level verbatim, in separate elements", () => {
+    render(<GenerationCard item={ITEM_IMAGE} />);
+
+    const emotion = screen.getByText("angry");
+    const level = screen.getByText("quite");
+    expect(emotion).toBeInTheDocument();
+    expect(level).toBeInTheDocument();
+    expect(emotion).not.toBe(level);
+    expect(emotion).not.toContainElement(level);
+    // The stored strings, verbatim: no emoji and no capitalisation.
+    expect(emotion.textContent).toBe("angry");
+    expect(level.textContent).toBe("quite");
+    expect(document.body.textContent).not.toMatch(/😊|😠|😢/);
+  });
+
+  it("renders no level for an emotion that has none", () => {
+    render(<GenerationCard item={{ ...ITEM_IMAGE, emotion: "happy", level: null }} />);
+
+    expect(screen.getByText("happy")).toBeInTheDocument();
+    expect(screen.queryByText("quite")).toBeNull();
+    expect(screen.queryByTestId("level")).toBeNull();
+  });
+
+  // FR-005: a pre-002 entry renders without an emotion label rather than failing.
+  it("renders an entry with neither emotion nor level, showing no emotion label", () => {
+    render(<GenerationCard item={ITEM_PRE_002} />);
+
+    expect(screen.getByRole("img")).toHaveAttribute("src", ITEM_PRE_002.url);
+    expect(screen.queryByTestId("emotion")).toBeNull();
+    expect(screen.queryByTestId("level")).toBeNull();
+  });
+
+  it("renders whatever control the list places inside it", () => {
+    render(
+      <GenerationCard item={ITEM_IMAGE}>
+        <button type="button">Publish</button>
+      </GenerationCard>
+    );
+
+    expect(screen.getByRole("button", { name: "Publish" })).toBeInTheDocument();
+  });
+});
+```
+
+### `components/gallery/PublishToggle.jsx`
+
+```jsx
+"use client";
+
+import { useState } from "react";
+import { Button } from "@/components/ui";
+
+// Failure shows no message: the control returns to its previous state and
+// re-enables. The spec requires no error copy here, so none is written.
+export function PublishToggle({ item }) {
+  const [isPublic, setIsPublic] = useState(item.isPublic);
+  const [isSaving, setIsSaving] = useState(false);
+
+  if (item.status !== "ready") return null;
+
+  const handleClick = async () => {
+    const next = !isPublic;
+    setIsSaving(true);
+
+    try {
+      const response = await fetch(`/api/generation/${item.id}/publish`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isPublic: next }),
+      });
+
+      if (response.status === 200) setIsPublic(next);
+    } catch {
+      // Left where it was, deliberately silently.
+    }
+
+    setIsSaving(false);
+  };
+
+  return (
+    <Button type="button" variant="secondary" onClick={handleClick} disabled={isSaving} className="w-full">
+      {isPublic ? "Unpublish" : "Publish"}
+    </Button>
+  );
+}
+```
+
+### `components/gallery/PublishToggle.test.jsx`
+
+```jsx
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
+import { setupServer } from "msw/node";
+import { http, HttpResponse } from "msw";
+import { handlers } from "@/test/msw/handlers.js";
+import { ITEM_IMAGE, ITEM_PENDING_VIDEO } from "@/test/fixtures.js";
+import { PublishToggle } from "./PublishToggle.jsx";
+
+const server = setupServer(...handlers);
+
+beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
+
+const toggle = () => screen.getByRole("button", { name: /publish/i });
+
+describe("PublishToggle", () => {
+  it("reads Publish for an item that is not public", () => {
+    render(<PublishToggle item={ITEM_IMAGE} />);
+
+    expect(screen.getByRole("button", { name: "Publish" })).toBeInTheDocument();
+  });
+
+  it("reads Unpublish for an item that is public", () => {
+    render(<PublishToggle item={{ ...ITEM_IMAGE, isPublic: true }} />);
+
+    expect(screen.getByRole("button", { name: "Unpublish" })).toBeInTheDocument();
+  });
+
+  it("posts the flag to the item's own publish route and flips its label on a 200", async () => {
+    let body;
+    let path;
+    server.use(
+      http.post("/api/generation/:id/publish", async ({ request, params }) => {
+        body = await request.json();
+        path = params.id;
+        return HttpResponse.json({ id: params.id, isPublic: body.isPublic }, { status: 200 });
+      })
+    );
+
+    render(<PublishToggle item={ITEM_IMAGE} />);
+    await userEvent.click(toggle());
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Unpublish" })).toBeInTheDocument());
+    expect(body).toEqual({ isPublic: true });
+    expect(path).toBe(ITEM_IMAGE.id);
+  });
+
+  it("posts isPublic false when unpublishing, and flips back", async () => {
+    let body;
+    server.use(
+      http.post("/api/generation/:id/publish", async ({ request, params }) => {
+        body = await request.json();
+        return HttpResponse.json({ id: params.id, isPublic: body.isPublic }, { status: 200 });
+      })
+    );
+
+    render(<PublishToggle item={{ ...ITEM_IMAGE, isPublic: true }} />);
+    await userEvent.click(toggle());
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Publish" })).toBeInTheDocument());
+    expect(body).toEqual({ isPublic: false });
+  });
+
+  it("leaves the label where it was, re-enables and shows no message on a non-200", async () => {
+    server.use(
+      http.post("/api/generation/:id/publish", () =>
+        new HttpResponse("Generation is not ready", { status: 409 })
+      )
+    );
+
+    render(<PublishToggle item={ITEM_IMAGE} />);
+    await userEvent.click(toggle());
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Publish" })).toBeEnabled());
+    expect(screen.queryByRole("button", { name: "Unpublish" })).toBeNull();
+    expect(screen.queryByText(/not ready|failed|error|try again/i)).toBeNull();
+  });
+
+  it("shows no message when the request itself fails", async () => {
+    server.use(http.post("/api/generation/:id/publish", () => HttpResponse.error()));
+
+    render(<PublishToggle item={ITEM_IMAGE} />);
+    await userEvent.click(toggle());
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Publish" })).toBeEnabled());
+    expect(screen.queryByText(/failed|error|try again/i)).toBeNull();
+  });
+
+  // FR-016: nothing to publish until the generation is ready.
+  it("renders nothing for an item whose status is not ready", () => {
+    const { container } = render(<PublishToggle item={ITEM_PENDING_VIDEO} />);
+
+    expect(container).toBeEmptyDOMElement();
+  });
+});
+```
+
+### `components/gallery/index.js`
+
+```js
+export { GenerationCard } from "./GenerationCard";
+export { GalleryList } from "./GalleryList";
+export { PublishToggle } from "./PublishToggle";
 ```
 
 ### `components/result/VideoResult.jsx`
@@ -3796,7 +6196,192 @@ export const VideoResult = ({ videoUrl, jobId }) => {
 };
 ```
 
+### `components/wall/WallList.jsx`
+
+```jsx
+"use client";
+
+import { useRef, useState } from "react";
+import { Button } from "@/components/ui";
+import { GenerationCard } from "@/components/gallery";
+
+// The same shape as GalleryList minus the publish control: the wall shows
+// everyone's published work and offers no way to change it.
+export function WallList({ items: seed, hasMore: seedHasMore, page: seedPage = 0 }) {
+  const [items, setItems] = useState(() => seed);
+  const [hasMore, setHasMore] = useState(() => seedHasMore);
+  // The page number is never rendered, only read by the handler that asks for
+  // the next one, so it lives in a ref rather than causing a render of its own.
+  const page = useRef(seedPage);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLoadMore = async () => {
+    const next = page.current + 1;
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`/api/wall?page=${next}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        setItems((current) => [...current, ...data.items]);
+        setHasMore(data.hasMore);
+        page.current = next;
+      }
+    } catch {
+      // The list stays where it is.
+    }
+
+    setIsLoading(false);
+  };
+
+  if (items.length === 0) {
+    return <p className="body text-ink-subtle">Nothing published yet.</p>;
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {items.map((item) => (
+          <GenerationCard key={item.id} item={item} />
+        ))}
+      </div>
+
+      {hasMore && (
+        <Button type="button" variant="secondary" onClick={handleLoadMore} disabled={isLoading} className="w-full">
+          Load more
+        </Button>
+      )}
+    </div>
+  );
+}
+```
+
+### `components/wall/WallList.test.jsx`
+
+```jsx
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
+import { setupServer } from "msw/node";
+import { http, HttpResponse } from "msw";
+import { handlers } from "@/test/msw/handlers.js";
+import { ITEM_IMAGE, ITEM_PRE_002 } from "@/test/fixtures.js";
+import { WallList } from "./WallList.jsx";
+
+const server = setupServer(...handlers);
+
+const requests = [];
+
+beforeAll(() => {
+  server.listen({ onUnhandledRequest: "error" });
+  server.events.on("request:start", ({ request }) => requests.push(request.url));
+});
+afterEach(() => {
+  server.resetHandlers();
+  requests.length = 0;
+});
+afterAll(() => server.close());
+
+const published = (item) => ({ ...item, isPublic: true });
+const items = [published(ITEM_IMAGE), published(ITEM_PRE_002)];
+const loadMore = () => screen.getByRole("button", { name: "Load more" });
+
+describe("WallList", () => {
+  it("renders the items it was seeded with and fetches nothing on mount", async () => {
+    render(<WallList items={items} hasMore={true} page={0} />);
+
+    expect(screen.getAllByTestId("card")).toHaveLength(2);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(requests).toHaveLength(0);
+  });
+
+  it("asks for the next wall page on the click only, and appends the result", async () => {
+    render(<WallList items={items} hasMore={true} page={0} />);
+
+    await userEvent.click(loadMore());
+
+    await waitFor(() => expect(screen.getAllByTestId("card").length).toBeGreaterThan(2));
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toContain("/api/wall?page=1");
+  });
+
+  it("hides the control once the last page has arrived", async () => {
+    render(<WallList items={items} hasMore={true} page={0} />);
+
+    await userEvent.click(loadMore());
+
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Load more" })).toBeNull());
+  });
+
+  it("renders no control at all when there is no more to load", () => {
+    render(<WallList items={items} hasMore={false} page={0} />);
+
+    expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
+  });
+
+  it("leaves the list untouched when the page request fails", async () => {
+    render(<WallList items={items} hasMore={true} page={0} />);
+    server.use(http.get("/api/wall", () => new HttpResponse("Invalid page", { status: 400 })));
+
+    await userEvent.click(loadMore());
+
+    await waitFor(() => expect(loadMore()).toBeEnabled());
+    expect(screen.getAllByTestId("card")).toHaveLength(2);
+  });
+
+  it("renders its own empty state", () => {
+    render(<WallList items={[]} hasMore={false} page={0} />);
+
+    expect(screen.getByText("Nothing published yet.")).toBeInTheDocument();
+    expect(screen.queryByText("Nothing here yet.")).toBeNull();
+    expect(screen.queryByRole("link", { name: "Capture something" })).toBeNull();
+  });
+
+  // FR-019: the wall carries no publish control anywhere.
+  it("shows no publish control on any entry", async () => {
+    render(<WallList items={items} hasMore={true} page={0} />);
+
+    expect(screen.queryByRole("button", { name: /^(Publish|Unpublish)$/ })).toBeNull();
+
+    await userEvent.click(loadMore());
+    await waitFor(() => expect(screen.getAllByTestId("card").length).toBeGreaterThan(2));
+    expect(screen.queryByRole("button", { name: /^(Publish|Unpublish)$/ })).toBeNull();
+  });
+
+  it("reuses the gallery's card rather than duplicating it", async () => {
+    const source = (await import("node:fs")).readFileSync(
+      `${process.cwd()}/components/wall/WallList.jsx`,
+      "utf8"
+    );
+
+    expect(source).toMatch(/components\/gallery/);
+    expect(source).not.toMatch(/PublishToggle/);
+  });
+});
+```
+
+### `components/wall/index.js`
+
+```js
+export { WallList } from "./WallList";
+```
+
 ## Test infrastructure
+
+### `e2e/gallery-requires-session.spec.js`
+
+```js
+import { test, expect } from "@playwright/test";
+
+// The route side of FR-003, in a real browser rather than against a mocked
+// matcher: the gallery is not reachable without a session.
+test("a visitor with no session is sent from the gallery to sign-in", async ({ page }) => {
+  await page.goto("/gallery");
+
+  await expect(page).toHaveURL(/\/sign-in/);
+});
+```
 
 ### `e2e/landing.spec.js`
 
@@ -3808,6 +6393,22 @@ test("landing page loads and links to sign-in", async ({ page }) => {
   await expect(page.getByText("Create videos from photos")).toBeVisible();
   await page.getByRole("link", { name: "Start creating" }).click();
   await expect(page).toHaveURL(/\/sign-in/);
+});
+```
+
+### `e2e/wall.spec.js`
+
+```js
+import { test, expect } from "@playwright/test";
+
+// Credential-free by design: the wall is the one screen a stranger reaches, and
+// no unit test can prove the route matcher lets them through (SC-004).
+test("a visitor with no session reaches the wall", async ({ page }) => {
+  await page.goto("/wall");
+
+  await expect(page.getByRole("heading", { name: "Wall" })).toBeVisible();
+  await expect(page).toHaveURL(/\/wall$/);
+  expect(page.url()).not.toContain("/sign-in");
 });
 ```
 
@@ -3901,11 +6502,55 @@ export const BLOB_URL = "https://blob.test/image-1.png";
 export const VIDEO_URL = "https://blob.test/video-1.mp4";
 export const PROVIDER_JOB_ID = "provider-job-1";
 export const JOB_ID = "job-12345";
+
+// The three Item shapes the listing screens have to render. They match
+// lib/generations.js's mapper exactly, including its read-time defaults — a
+// fixture that drifts from the mapper gives green tests and a broken screen.
+
+// Ready image carrying an emotion and a level.
+export const ITEM_IMAGE = {
+  id: "6702a1b2c3d4e5f601020304",
+  kind: "image",
+  status: "ready",
+  url: BLOB_URL,
+  emotion: "angry",
+  level: "quite",
+  isPublic: false,
+  createdAt: "2026-08-21T10:00:00.000Z",
+};
+
+// Video still rendering: no url yet, and no emotion, because POST /api/video
+// does not record one.
+export const ITEM_PENDING_VIDEO = {
+  id: "6702a1b2c3d4e5f601020305",
+  kind: "video",
+  status: "pending",
+  url: null,
+  emotion: null,
+  level: null,
+  isPublic: false,
+  createdAt: "2026-08-20T10:00:00.000Z",
+};
+
+// Created before this feature: no emotion and no published flag were stored,
+// so both read as their defaults rather than failing.
+export const ITEM_PRE_002 = {
+  id: "6702a1b2c3d4e5f601020306",
+  kind: "image",
+  status: "ready",
+  url: "https://blob.test/image-legacy.png",
+  emotion: null,
+  level: null,
+  isPublic: false,
+  createdAt: "2026-08-01T10:00:00.000Z",
+};
 ```
 
 ### `test/mongo-fake.js`
 
 ```js
+import { ObjectId } from "mongodb";
+
 export class FakeCollection {
   constructor() {
     this.docs = [];
@@ -3915,16 +6560,18 @@ export class FakeCollection {
     return this.docs.find((doc) => matches(doc, filter));
   }
 
+  // Real ObjectIds, because the routes hand ids back to the client as strings
+  // and parse them again on the way in.
   async insertOne(doc) {
-    const id = Date.now().toString();
-    this.docs.push({ _id: id, ...doc });
-    return { insertedId: id };
+    const _id = new ObjectId();
+    this.docs.push({ _id, ...doc });
+    return { insertedId: _id };
   }
 
   async updateOne(filter, update) {
     const doc = await this.findOne(filter);
     if (!doc) return { matchedCount: 0, modifiedCount: 0 };
-    
+
     const $set = update.$set || update;
     Object.assign(doc, $set);
     return { matchedCount: 1, modifiedCount: 1 };
@@ -3933,24 +6580,70 @@ export class FakeCollection {
   async countDocuments(filter = {}) {
     return this.docs.filter((doc) => matches(doc, filter)).length;
   }
+
+  // Chainable, and lazy: nothing is read until toArray(). Implements only the
+  // four stages the two paged reads use — a query needing a fifth extends this
+  // fake rather than working around it.
+  find(filter = {}) {
+    const cursor = { sortSpec: null, skipCount: 0, limitCount: null };
+
+    const api = {
+      sort: (spec) => ((cursor.sortSpec = spec), api),
+      skip: (n) => ((cursor.skipCount = n), api),
+      limit: (n) => ((cursor.limitCount = n), api),
+      toArray: async () => {
+        let docs = this.docs.filter((doc) => matches(doc, filter));
+
+        if (cursor.sortSpec) docs = [...docs].sort(comparator(cursor.sortSpec));
+
+        docs = docs.slice(cursor.skipCount);
+        return cursor.limitCount === null ? docs : docs.slice(0, cursor.limitCount);
+      },
+    };
+
+    return api;
+  }
 }
 
 // Exact match on each key, except a `{ $gte: value }` operand, which does a
 // range comparison. Covers "generations today" style date-range counts.
+// ObjectIds compare through .equals(): `===` misses every equal-but-distinct id.
 function matches(doc, filter) {
   return Object.entries(filter).every(([key, val]) => {
     if (val && typeof val === "object" && "$gte" in val) {
       return doc[key] >= val.$gte;
     }
+    if (val instanceof ObjectId) {
+      return doc[key] instanceof ObjectId && val.equals(doc[key]);
+    }
     return doc[key] === val;
   });
 }
+
+// One comparator per sort spec, applying each key in declaration order so the
+// `_id` tiebreaker in `{ createdAt: -1, _id: -1 }` decides ties on createdAt.
+function comparator(spec) {
+  const keys = Object.entries(spec);
+
+  return (a, b) => {
+    for (const [key, direction] of keys) {
+      const left = sortable(a[key]);
+      const right = sortable(b[key]);
+      if (left < right) return -direction;
+      if (left > right) return direction;
+    }
+    return 0;
+  };
+}
+
+const sortable = (value) => (value instanceof ObjectId ? value.toString() : value);
 ```
 
 ### `test/mongo-fake.test.js`
 
 ```js
 import { describe, it, expect } from "vitest";
+import { ObjectId } from "mongodb";
 import { FakeCollection } from "./mongo-fake";
 
 describe("FakeCollection", () => {
@@ -3976,6 +6669,190 @@ describe("FakeCollection", () => {
     await col.insertOne({ type: "b" });
     expect(await col.countDocuments({ type: "a" })).toBe(2);
   });
+
+  it("counts documents in a date range", async () => {
+    const col = new FakeCollection();
+    await col.insertOne({ timestamp: new Date("2026-08-20") });
+    await col.insertOne({ timestamp: new Date("2026-08-21") });
+
+    const count = await col.countDocuments({
+      timestamp: { $gte: new Date("2026-08-21") },
+    });
+
+    expect(count).toBe(1);
+  });
+});
+
+describe("FakeCollection ids", () => {
+  it("assigns a real ObjectId on insert", async () => {
+    const col = new FakeCollection();
+    const { insertedId } = await col.insertOne({ kind: "image" });
+
+    expect(insertedId).toBeInstanceOf(ObjectId);
+    expect(col.docs[0]._id).toBeInstanceOf(ObjectId);
+  });
+
+  it("assigns a distinct id to every document", async () => {
+    const col = new FakeCollection();
+    await col.insertOne({ n: 1 });
+    await col.insertOne({ n: 2 });
+
+    expect(col.docs[0]._id.equals(col.docs[1]._id)).toBe(false);
+  });
+
+  // Trap 4: with `===` the lookup below silently misses, and setPublished
+  // answers "not-found" for documents that exist.
+  it("finds a document by an equal but non-identical ObjectId", async () => {
+    const col = new FakeCollection();
+    const { insertedId } = await col.insertOne({ kind: "image" });
+
+    const doc = await col.findOne({ _id: new ObjectId(insertedId.toString()) });
+
+    expect(doc).toBeDefined();
+    expect(doc.kind).toBe("image");
+  });
+
+  it("does not find a document by a different ObjectId", async () => {
+    const col = new FakeCollection();
+    await col.insertOne({ kind: "image" });
+
+    expect(await col.findOne({ _id: new ObjectId() })).toBeUndefined();
+  });
+
+  it("updates the document matched by its ObjectId", async () => {
+    const col = new FakeCollection();
+    const { insertedId } = await col.insertOne({ isPublic: false });
+
+    const result = await col.updateOne(
+      { _id: new ObjectId(insertedId.toString()) },
+      { $set: { isPublic: true } }
+    );
+
+    expect(result).toEqual({ matchedCount: 1, modifiedCount: 1 });
+    expect(col.docs[0].isPublic).toBe(true);
+  });
+
+  it("matches an ObjectId alongside another field", async () => {
+    const col = new FakeCollection();
+    const { insertedId } = await col.insertOne({ userId: "user-1" });
+
+    expect(await col.findOne({ _id: insertedId, userId: "user-1" })).toBeDefined();
+    expect(await col.findOne({ _id: insertedId, userId: "user-2" })).toBeUndefined();
+  });
+});
+
+describe("FakeCollection find", () => {
+  const seed = async (col, docs) => {
+    for (const doc of docs) await col.insertOne(doc);
+    return col;
+  };
+
+  const dated = (day, rest = {}) => ({
+    createdAt: new Date(`2026-08-${day}`),
+    ...rest,
+  });
+
+  it("returns every document when the filter is empty", async () => {
+    const col = await seed(new FakeCollection(), [{ n: 1 }, { n: 2 }]);
+    expect((await col.find({}).toArray()).map((d) => d.n)).toEqual([1, 2]);
+  });
+
+  it("filters on an exact match", async () => {
+    const col = await seed(new FakeCollection(), [
+      { userId: "user-1", n: 1 },
+      { userId: "user-2", n: 2 },
+      { userId: "user-1", n: 3 },
+    ]);
+
+    const docs = await col.find({ userId: "user-1" }).toArray();
+
+    expect(docs.map((d) => d.n)).toEqual([1, 3]);
+  });
+
+  it("sorts descending on one key", async () => {
+    const col = await seed(new FakeCollection(), [
+      dated("19", { n: 1 }),
+      dated("21", { n: 2 }),
+      dated("20", { n: 3 }),
+    ]);
+
+    const docs = await col.find({}).sort({ createdAt: -1 }).toArray();
+
+    expect(docs.map((d) => d.n)).toEqual([2, 3, 1]);
+  });
+
+  it("sorts ascending on one key", async () => {
+    const col = await seed(new FakeCollection(), [
+      dated("19", { n: 1 }),
+      dated("21", { n: 2 }),
+      dated("20", { n: 3 }),
+    ]);
+
+    const docs = await col.find({}).sort({ createdAt: 1 }).toArray();
+
+    expect(docs.map((d) => d.n)).toEqual([1, 3, 2]);
+  });
+
+  // The `_id` tiebreaker is what keeps paging stable when two documents share
+  // a timestamp — the plan pins the sort as { createdAt: -1, _id: -1 }.
+  it("breaks a tie on the second sort key", async () => {
+    const col = await seed(new FakeCollection(), [
+      dated("21", { n: 1 }),
+      dated("21", { n: 2 }),
+      dated("21", { n: 3 }),
+    ]);
+
+    const docs = await col.find({}).sort({ createdAt: -1, _id: -1 }).toArray();
+
+    expect(docs.map((d) => d.n)).toEqual([3, 2, 1]);
+  });
+
+  it("skips and limits, chained in any order after the sort", async () => {
+    const col = await seed(
+      new FakeCollection(),
+      [1, 2, 3, 4, 5].map((n) => dated(String(14 + n), { n }))
+    );
+
+    const docs = await col
+      .find({})
+      .sort({ createdAt: -1 })
+      .skip(1)
+      .limit(2)
+      .toArray();
+
+    expect(docs.map((d) => d.n)).toEqual([4, 3]);
+  });
+
+  it("returns an empty array for a page past the end", async () => {
+    const col = await seed(new FakeCollection(), [{ n: 1 }, { n: 2 }]);
+
+    const docs = await col.find({}).sort({ createdAt: -1 }).skip(12).limit(13).toArray();
+
+    expect(docs).toEqual([]);
+  });
+
+  it("leaves the stored documents untouched", async () => {
+    const col = await seed(new FakeCollection(), [
+      dated("19", { n: 1 }),
+      dated("21", { n: 2 }),
+    ]);
+
+    await col.find({}).sort({ createdAt: -1 }).toArray();
+
+    expect(col.docs.map((d) => d.n)).toEqual([1, 2]);
+  });
+
+  it("filters on a boolean flag", async () => {
+    const col = await seed(new FakeCollection(), [
+      { isPublic: true, n: 1 },
+      { isPublic: false, n: 2 },
+      { n: 3 },
+    ]);
+
+    const docs = await col.find({ isPublic: true }).toArray();
+
+    expect(docs.map((d) => d.n)).toEqual([1]);
+  });
 });
 ```
 
@@ -3983,14 +6860,74 @@ describe("FakeCollection", () => {
 
 ```js
 import { http, HttpResponse } from "msw";
+import { buildHint } from "@/lib/emotions.js";
+import { ITEM_IMAGE, ITEM_PENDING_VIDEO, ITEM_PRE_002 } from "../fixtures.js";
+
+// `page` arrives as a string. Anything that is not a non-negative integer is a
+// 400 here exactly as in the route, so a NaN never becomes an empty page that
+// looks like the end of the list.
+const parsePage = (request) => {
+  const raw = new URL(request.url).searchParams.get("page");
+  if (raw === null) return 0;
+  return /^\d+$/.test(raw) ? Number(raw) : null;
+};
+
+const invalidPage = () => new HttpResponse("Invalid page", { status: 400 });
+
+// Page 0 serves the fixtures and reports more; every later page serves one
+// distinguishable item and reports the end, which is all "Load more" needs.
+const pageOf = (items, page) =>
+  page === 0
+    ? { items, hasMore: true, page }
+    : { items: [{ ...items[0], id: `${items[0].id}-page-${page}` }], hasMore: false, page };
+
+const published = (item) => ({ ...item, isPublic: true });
 
 export const handlers = [
   http.post("/api/image", async ({ request }) => {
-    const { photo, hint } = await request.json();
+    const { photo, emotion, level } = await request.json();
+
+    try {
+      buildHint(emotion, level);
+    } catch (error) {
+      return new HttpResponse(error.message, { status: error.status });
+    }
+
     return HttpResponse.json(
       { imageUrl: "https://blob.test/image-1.png" },
       { status: 200 }
     );
+  }),
+
+  http.get("/api/gallery", ({ request }) => {
+    const page = parsePage(request);
+    if (page === null) return invalidPage();
+
+    return HttpResponse.json(
+      pageOf([ITEM_IMAGE, ITEM_PENDING_VIDEO, ITEM_PRE_002], page),
+      { status: 200 }
+    );
+  }),
+
+  // No 401 row: a visitor with no session gets the wall (FR-018).
+  http.get("/api/wall", ({ request }) => {
+    const page = parsePage(request);
+    if (page === null) return invalidPage();
+
+    return HttpResponse.json(
+      pageOf([published(ITEM_IMAGE), published(ITEM_PRE_002)], page),
+      { status: 200 }
+    );
+  }),
+
+  http.post("/api/generation/:id/publish", async ({ request, params }) => {
+    const { isPublic } = await request.json();
+
+    if (typeof isPublic !== "boolean") {
+      return new HttpResponse("Invalid isPublic", { status: 400 });
+    }
+
+    return HttpResponse.json({ id: params.id, isPublic }, { status: 200 });
   }),
 
   http.post("/api/video", async ({ request }) => {
@@ -4029,8 +6966,32 @@ export const handlers = [
 ### `test/msw/handlers.test.js`
 
 ```js
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
+import { setupServer } from "msw/node";
 import { handlers } from "./handlers";
+import { PHOTO_DATA_URL } from "../fixtures.js";
+
+// The handlers are the seam Bloques A and B test against: they never call the
+// real routes, so a handler that disagrees with the plan's HTTP table gives
+// green tests and a broken app. These cases are that table, row by row.
+const server = setupServer(...handlers);
+
+// The handlers are declared with relative paths, which MSW resolves against
+// the document's origin — the same origin the screens fetch from.
+const ORIGIN = location.origin;
+
+beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
+
+const get = (path) => fetch(`${ORIGIN}${path}`);
+
+const post = (path, body) =>
+  fetch(`${ORIGIN}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
 
 describe("MSW handlers", () => {
   it("includes handlers for all four API routes", () => {
@@ -4039,29 +7000,190 @@ describe("MSW handlers", () => {
     expect(paths).toContain("/api/video");
   });
 
-  it("POST /api/image returns imageUrl", () => {
-    const imageHandler = handlers.find((h) => h.info.path === "/api/image");
-    expect(imageHandler).toBeDefined();
+  it("covers the routes this feature adds", () => {
+    const paths = handlers.map((h) => h.info.path);
+    expect(paths).toContain("/api/gallery");
+    expect(paths).toContain("/api/wall");
+    expect(paths).toContain("/api/generation/:id/publish");
   });
 
-  it("GET /api/video/:id returns status and videoUrl", () => {
-    const videoHandler = handlers.find(
-      (h) => h.info.path === "/api/video/:id"
-    );
-    expect(videoHandler).toBeDefined();
+  it("GET /api/video/:id returns status and videoUrl", async () => {
+    const response = await get("/api/video/job-12345");
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      status: "ready",
+      videoUrl: "https://blob.test/video-1.mp4",
+    });
   });
 
-  it("covers the file route and complete settings response", async () => {
-    const fileHandler = handlers.find(
-      (h) => h.info.path === "/api/video/:id/file"
-    );
-    const settingsHandler = handlers.find(
-      (h) => h.info.path === "/api/settings"
-    );
+  it("covers the file route and the complete settings response", async () => {
+    const file = await get("/api/video/job-12345/file");
+    expect(file.headers.get("Content-Type")).toBe("video/mp4");
 
-    expect(fileHandler).toBeDefined();
-    expect(settingsHandler).toBeDefined();
-    expect(settingsHandler.info.path).toBe("/api/settings");
+    const settings = await get("/api/settings");
+    await expect(settings.json()).resolves.toEqual({ enabled: true, videoQuality: "lite" });
+  });
+});
+
+describe("POST /api/image", () => {
+  it("answers 200 with an imageUrl for a happy generation", async () => {
+    const response = await post("/api/image", {
+      photo: PHOTO_DATA_URL,
+      emotion: "happy",
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      imageUrl: "https://blob.test/image-1.png",
+    });
+  });
+
+  it("answers 200 for a levelled generation", async () => {
+    const response = await post("/api/image", {
+      photo: PHOTO_DATA_URL,
+      emotion: "angry",
+      level: "quite",
+    });
+
+    expect(response.status).toBe(200);
+  });
+
+  // The request body changed with this feature: hint is gone and is not read.
+  it("answers 400 Unknown emotion for a hint-shaped body", async () => {
+    const response = await post("/api/image", { photo: PHOTO_DATA_URL, hint: "happy" });
+
+    expect(response.status).toBe(400);
+    await expect(response.text()).resolves.toBe("Unknown emotion");
+  });
+
+  it("answers 400 with the validator's message for every invalid combination", async () => {
+    const cases = [
+      [{ emotion: "excited" }, "Unknown emotion"],
+      [{ emotion: "angry" }, "Unknown level"],
+      [{ emotion: "sad", level: "a lot" }, "Unknown level"],
+      [{ emotion: "happy", level: "quite" }, "happy takes no level"],
+    ];
+
+    for (const [body, message] of cases) {
+      const response = await post("/api/image", { photo: PHOTO_DATA_URL, ...body });
+
+      expect(response.status).toBe(400);
+      await expect(response.text()).resolves.toBe(message);
+    }
+  });
+});
+
+describe("GET /api/gallery", () => {
+  it("answers 200 with items, hasMore and the page", async () => {
+    const response = await get("/api/gallery");
+    expect(response.status).toBe(200);
+
+    const body = await response.json();
+    expect(Object.keys(body).sort()).toEqual(["hasMore", "items", "page"]);
+    expect(body.page).toBe(0);
+    expect(body.items.length).toBeGreaterThan(0);
+  });
+
+  it("serves the requested page as an integer", async () => {
+    const body = await (await get("/api/gallery?page=2")).json();
+
+    expect(body.page).toBe(2);
+    expect(typeof body.page).toBe("number");
+  });
+
+  it("serves a later page that differs from the first", async () => {
+    const first = await (await get("/api/gallery?page=0")).json();
+    const second = await (await get("/api/gallery?page=1")).json();
+
+    expect(first.hasMore).toBe(true);
+    expect(second.items.map((i) => i.id)).not.toEqual(first.items.map((i) => i.id));
+    expect(second.hasMore).toBe(false);
+  });
+
+  it("returns items in the Item shape and never a userId", async () => {
+    const { items } = await (await get("/api/gallery")).json();
+
+    for (const item of items) {
+      expect(Object.keys(item).sort()).toEqual([
+        "createdAt",
+        "emotion",
+        "id",
+        "isPublic",
+        "kind",
+        "level",
+        "status",
+        "url",
+      ]);
+    }
+  });
+
+  it("answers 400 Invalid page for a page that is not a non-negative integer", async () => {
+    for (const page of ["abc", "-1", "1.5", ""]) {
+      const response = await get(`/api/gallery?page=${page}`);
+
+      expect(response.status).toBe(400);
+      await expect(response.text()).resolves.toBe("Invalid page");
+    }
+  });
+});
+
+describe("GET /api/wall", () => {
+  it("answers 200 with items, hasMore and the page, with no session", async () => {
+    const response = await get("/api/wall");
+    expect(response.status).toBe(200);
+
+    const body = await response.json();
+    expect(Object.keys(body).sort()).toEqual(["hasMore", "items", "page"]);
+    expect(body.page).toBe(0);
+  });
+
+  it("serves published generations only", async () => {
+    const { items } = await (await get("/api/wall")).json();
+
+    expect(items.length).toBeGreaterThan(0);
+    for (const item of items) expect(item.isPublic).toBe(true);
+  });
+
+  it("serves the requested page and reports the end of the list", async () => {
+    const second = await (await get("/api/wall?page=1")).json();
+
+    expect(second.page).toBe(1);
+    expect(second.hasMore).toBe(false);
+  });
+
+  it("answers 400 Invalid page under the same rule as the gallery", async () => {
+    const response = await get("/api/wall?page=abc");
+
+    expect(response.status).toBe(400);
+    await expect(response.text()).resolves.toBe("Invalid page");
+  });
+});
+
+describe("POST /api/generation/:id/publish", () => {
+  const ID = "6702a1b2c3d4e5f601020304";
+
+  it("answers 200 with the id and the flag when publishing", async () => {
+    const response = await post(`/api/generation/${ID}/publish`, { isPublic: true });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ id: ID, isPublic: true });
+  });
+
+  it("answers 200 when unpublishing", async () => {
+    const response = await post(`/api/generation/${ID}/publish`, { isPublic: false });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ id: ID, isPublic: false });
+  });
+
+  it("answers 400 Invalid isPublic when the flag is missing or not a boolean", async () => {
+    for (const body of [{}, { isPublic: "true" }, { isPublic: 1 }, { isPublic: null }]) {
+      const response = await post(`/api/generation/${ID}/publish`, body);
+
+      expect(response.status).toBe(400);
+      await expect(response.text()).resolves.toBe("Invalid isPublic");
+    }
   });
 });
 ```
@@ -4091,6 +7213,157 @@ export function renderAt360px(component) {
 ```
 
 ## Everything else
+
+### `app/gallery/page.jsx`
+
+```jsx
+import { auth } from "@clerk/nextjs/server";
+import { listByUser } from "@/lib/generations.js";
+import { Nav } from "@/components/Nav";
+import { GalleryList } from "@/components/gallery";
+
+// The first page is read here, on the server: no fetch, no HTTP, no /api/gallery.
+export default async function GalleryPage() {
+  const { userId } = await auth();
+  const { items, hasMore } = await listByUser(userId, 0);
+
+  return (
+    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col gap-4 px-4 py-6 md:max-w-2xl lg:max-w-4xl">
+      <Nav />
+      <h1 className="display-sm">Gallery</h1>
+      <GalleryList items={items} hasMore={hasMore} page={0} />
+    </main>
+  );
+}
+```
+
+### `app/gallery/page.test.jsx`
+
+```jsx
+import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { ITEM_IMAGE, ITEM_PENDING_VIDEO } from "@/test/fixtures.js";
+
+// Trap 2: an async Server Component is not rendered by render(). Await the page
+// function and render what it returns.
+vi.mock("@clerk/nextjs/server", () => ({ auth: vi.fn() }));
+vi.mock("@/lib/generations.js", () => ({ listByUser: vi.fn() }));
+vi.mock("@clerk/nextjs", () => ({
+  UserButton: () => null,
+  useUser: () => ({ user: { publicMetadata: {} } }),
+}));
+
+const load = async () => {
+  const { auth } = await import("@clerk/nextjs/server");
+  const { listByUser } = await import("@/lib/generations.js");
+  const GalleryPage = (await import("./page.jsx")).default;
+  return { GalleryPage, auth, listByUser };
+};
+
+beforeEach(async () => {
+  vi.clearAllMocks();
+  const { auth, listByUser } = await load();
+  auth.mockResolvedValue({ userId: "user-1" });
+  listByUser.mockResolvedValue({ items: [ITEM_IMAGE, ITEM_PENDING_VIDEO], hasMore: false });
+});
+
+describe("Gallery page", () => {
+  it("renders the Gallery heading", async () => {
+    const { GalleryPage } = await load();
+
+    render(await GalleryPage());
+
+    expect(screen.getByRole("heading", { name: "Gallery" })).toBeInTheDocument();
+  });
+
+  it("reads the first page on the server, for the session's own userId", async () => {
+    const { GalleryPage, listByUser } = await load();
+
+    render(await GalleryPage());
+
+    expect(listByUser).toHaveBeenCalledWith("user-1", 0);
+    expect(screen.getAllByTestId("card")).toHaveLength(2);
+  });
+
+  // FR-006, SC-006: no HTTP leaves the render.
+  it("makes no HTTP request while rendering", async () => {
+    const { GalleryPage } = await load();
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+
+    render(await GalleryPage());
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
+  it("shows the empty state when the module returns no items", async () => {
+    const { GalleryPage, listByUser } = await load();
+    listByUser.mockResolvedValue({ items: [], hasMore: false });
+
+    render(await GalleryPage());
+
+    expect(screen.getByText("Nothing here yet.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Capture something" })).toHaveAttribute("href", "/capture");
+  });
+});
+
+// T014 — FR-029, asserted against the composed screen.
+describe("Gallery screen — responsive and accessible", () => {
+  it("widens the layout at md and lg", async () => {
+    const { GalleryPage } = await load();
+
+    render(await GalleryPage());
+
+    expect(screen.getByRole("main")).toHaveClass("md:max-w-2xl", "lg:max-w-4xl");
+  });
+
+  it("fits 360px without a horizontal scroll", async () => {
+    const { GalleryPage } = await load();
+    const { renderAt360px } = await import("@/test/viewport.js");
+
+    const { container, cleanup } = renderAt360px(await GalleryPage());
+
+    expect(container.scrollWidth).toBeLessThanOrEqual(360);
+    cleanup();
+  });
+
+  it("gives every control a 44px height and a visible focus ring", async () => {
+    const { GalleryPage, listByUser } = await load();
+    listByUser.mockResolvedValue({ items: [ITEM_IMAGE], hasMore: true });
+
+    render(await GalleryPage());
+
+    screen.getAllByRole("button").forEach((control) => {
+      expect(control.className).toMatch(/h-11/);
+      expect(control.className).toMatch(/focus:outline/);
+    });
+  });
+
+  it("clears 4.5:1 for body text on every surface step", async () => {
+    const { assertBodyTextContrast } = await import("@/test/contrast.js");
+
+    assertBodyTextContrast();
+  });
+
+  it("uses no raw palette hex outside app/globals.css", async () => {
+    const { readFileSync } = await import("node:fs");
+    const files = [
+      "app/gallery/page.jsx",
+      "app/wall/page.jsx",
+      "components/gallery/GenerationCard.jsx",
+      "components/gallery/GalleryList.jsx",
+      "components/gallery/PublishToggle.jsx",
+      "components/wall/WallList.jsx",
+      "components/Nav.jsx",
+    ];
+
+    files.forEach((file) => {
+      expect(readFileSync(`${process.cwd()}/${file}`, "utf8")).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
+    });
+  });
+});
+```
 
 ### `app/layout.test.jsx`
 
@@ -4189,9 +7462,11 @@ describe("Phase 2 capture flow", () => {
     expect(input).toHaveAttribute("accept", "image/*");
     expect(input).toHaveAttribute("capture", "environment");
 
-    const select = screen.getByLabelText("Mood");
+    const select = screen.getByLabelText("Emotion");
     expect(select).toBeInTheDocument();
-    expect(select.value).toBe("I am feeling happy 😊");
+    expect(select.value).toBe("happy");
+    expect([...select.options].map((option) => option.value)).toEqual(["happy", "angry", "sad"]);
+    expect(screen.queryByLabelText("Level")).toBeNull();
     expect(screen.getByRole("link", { name: "Capture" })).toHaveAttribute("href", "/capture");
 
     const file = new File(["hello"], "photo.png", { type: "image/png" });
@@ -4229,6 +7504,156 @@ describe("Phase 2 capture flow", () => {
 
     await user.click(screen.getByRole("button", { name: "Make video" }));
     await waitFor(() => expect(routerPush).toHaveBeenCalledWith("/result/job-12345"));
+  });
+});
+```
+
+### `app/wall/page.jsx`
+
+```jsx
+import { listPublic } from "@/lib/generations.js";
+import { WallList } from "@/components/wall";
+
+// Nothing here reads a request-time API, so the wall would otherwise be
+// prerendered once at build and never change. It reads the database per
+// request instead.
+export const dynamic = "force-dynamic";
+
+// No auth(), no redirect and no Nav: the wall renders the same for a visitor
+// with no session as for one with a session (FR-018).
+export default async function WallPage() {
+  const { items, hasMore } = await listPublic(0);
+
+  return (
+    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col gap-4 px-4 py-6 md:max-w-2xl lg:max-w-4xl">
+      <h1 className="display-sm">Wall</h1>
+      <WallList items={items} hasMore={hasMore} page={0} />
+    </main>
+  );
+}
+```
+
+### `app/wall/page.test.jsx`
+
+```jsx
+import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { ITEM_IMAGE, ITEM_PRE_002 } from "@/test/fixtures.js";
+
+vi.mock("@clerk/nextjs/server", () => ({ auth: vi.fn() }));
+vi.mock("@/lib/generations.js", () => ({ listPublic: vi.fn() }));
+vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
+
+const published = (item) => ({ ...item, isPublic: true });
+
+const load = async () => {
+  const { auth } = await import("@clerk/nextjs/server");
+  const { redirect } = await import("next/navigation");
+  const { listPublic } = await import("@/lib/generations.js");
+  const WallPage = (await import("./page.jsx")).default;
+  return { WallPage, auth, redirect, listPublic };
+};
+
+beforeEach(async () => {
+  vi.clearAllMocks();
+  const { auth, listPublic } = await load();
+  // No session, for every case here.
+  auth.mockResolvedValue({ userId: null });
+  listPublic.mockResolvedValue({
+    items: [published(ITEM_IMAGE), published(ITEM_PRE_002)],
+    hasMore: false,
+  });
+});
+
+describe("Wall page", () => {
+  it("renders the Wall heading", async () => {
+    const { WallPage } = await load();
+
+    render(await WallPage());
+
+    expect(screen.getByRole("heading", { name: "Wall" })).toBeInTheDocument();
+  });
+
+  it("reads its first page on the server through listPublic(0)", async () => {
+    const { WallPage, listPublic } = await load();
+
+    render(await WallPage());
+
+    expect(listPublic).toHaveBeenCalledWith(0);
+    expect(listPublic.mock.calls[0]).toHaveLength(1);
+    expect(screen.getAllByTestId("card")).toHaveLength(2);
+  });
+
+  // FR-018, SC-004.
+  it("never calls auth() and never redirects", async () => {
+    const { WallPage, auth, redirect } = await load();
+
+    render(await WallPage());
+
+    expect(auth).not.toHaveBeenCalled();
+    expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it("renders the same output with a session as without one", async () => {
+    const { WallPage, auth } = await load();
+
+    const anonymous = render(await WallPage()).container.innerHTML;
+    auth.mockResolvedValue({ userId: "user-1" });
+    const signedIn = render(await WallPage()).container.innerHTML;
+
+    expect(signedIn).toBe(anonymous);
+  });
+
+  it("makes no HTTP request while rendering", async () => {
+    const { WallPage } = await load();
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+
+    render(await WallPage());
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
+  it("shows the empty state when nothing is published", async () => {
+    const { WallPage, listPublic } = await load();
+    listPublic.mockResolvedValue({ items: [], hasMore: false });
+
+    render(await WallPage());
+
+    expect(screen.getByText("Nothing published yet.")).toBeInTheDocument();
+  });
+});
+
+// T014 — FR-029, asserted against the composed screen.
+describe("Wall screen — responsive and accessible", () => {
+  it("widens the layout at md and lg", async () => {
+    const { WallPage } = await load();
+
+    render(await WallPage());
+
+    expect(screen.getByRole("main")).toHaveClass("md:max-w-2xl", "lg:max-w-4xl");
+  });
+
+  it("fits 360px without a horizontal scroll", async () => {
+    const { WallPage } = await load();
+    const { renderAt360px } = await import("@/test/viewport.js");
+
+    const { container, cleanup } = renderAt360px(await WallPage());
+
+    expect(container.scrollWidth).toBeLessThanOrEqual(360);
+    cleanup();
+  });
+
+  it("gives the load-more control a 44px height and a visible focus ring", async () => {
+    const { WallPage, listPublic } = await load();
+    listPublic.mockResolvedValue({ items: [published(ITEM_IMAGE)], hasMore: true });
+
+    render(await WallPage());
+
+    const control = screen.getByRole("button", { name: "Load more" });
+    expect(control.className).toMatch(/h-11/);
+    expect(control.className).toMatch(/focus:outline/);
   });
 });
 ```
