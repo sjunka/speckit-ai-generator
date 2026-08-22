@@ -100,17 +100,55 @@ describe("Capture screen — generation", () => {
     expect(generated).toHaveAttribute("src", BLOB_URL);
   });
 
-  it("includes the selected mood in the request", async () => {
+  it("posts the emotion and no level for happy, and no hint at all", async () => {
     const fetchMock = respondWith({ body: { imageUrl: BLOB_URL } });
 
     await selectPhoto();
-    await userEvent.selectOptions(screen.getByRole("combobox"), "I am feeling bold 🔥");
     await userEvent.click(generateButton());
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
     const body = JSON.parse(fetchMock.mock.calls[0][1].body);
-    expect(body.hint).toBe("I am feeling bold 🔥");
+    expect(body.emotion).toBe("happy");
+    expect(body).not.toHaveProperty("level");
+    expect(body).not.toHaveProperty("hint");
     expect(body.photo).toBeTruthy();
+  });
+
+  it("posts the emotion and the level for an emotion that takes one", async () => {
+    const fetchMock = respondWith({ body: { imageUrl: BLOB_URL } });
+
+    await selectPhoto();
+    await userEvent.selectOptions(screen.getByLabelText("Emotion"), "angry");
+    await userEvent.selectOptions(screen.getByLabelText("Level"), "very");
+    await userEvent.click(generateButton());
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body).toMatchObject({ emotion: "angry", level: "very" });
+    expect(body).not.toHaveProperty("hint");
+  });
+
+  it("drops the level again when the reader goes back to happy", async () => {
+    const fetchMock = respondWith({ body: { imageUrl: BLOB_URL } });
+
+    await selectPhoto();
+    await userEvent.selectOptions(screen.getByLabelText("Emotion"), "sad");
+    await userEvent.selectOptions(screen.getByLabelText("Emotion"), "happy");
+    await userEvent.click(generateButton());
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body).toMatchObject({ emotion: "happy" });
+    expect(body).not.toHaveProperty("level");
+  });
+
+  it("offers the three emotions and none of the ten withdrawn moods", async () => {
+    render(<CapturePage />);
+
+    const options = [...screen.getByLabelText("Emotion").options].map((option) => option.value);
+    expect(options).toEqual(["happy", "angry", "sad"]);
+    expect(screen.queryByLabelText("Mood")).toBeNull();
+    expect(screen.queryByText(/I am feeling/)).toBeNull();
   });
 
   it("shows a plain message on failure, keeping the photo for a retry", async () => {
