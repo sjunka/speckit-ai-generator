@@ -41,7 +41,7 @@ describe("Phase 2 capture flow", () => {
     });
   });
 
-  it("shows the mood selector and photo preview", async () => {
+  it("shows the emotion selector and photo preview", async () => {
     const user = userEvent.setup();
     render(<CapturePage />);
 
@@ -50,9 +50,9 @@ describe("Phase 2 capture flow", () => {
     expect(input).toHaveAttribute("accept", "image/*");
     expect(input).toHaveAttribute("capture", "environment");
 
-    const select = screen.getByLabelText("Mood");
-    expect(select).toBeInTheDocument();
-    expect(select.value).toBe("I am feeling happy 😊");
+    const emotion = screen.getByLabelText("Emotion");
+    expect(emotion).toBeInTheDocument();
+    expect(emotion.value).toBe("happy");
     expect(screen.getByRole("link", { name: "Capture" })).toHaveAttribute("href", "/capture");
 
     const file = new File(["hello"], "photo.png", { type: "image/png" });

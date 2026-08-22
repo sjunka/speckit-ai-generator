@@ -4,17 +4,20 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Nav } from "@/components/Nav";
 import { Card, Button, StatusBadge, Spinner } from "@/components/ui";
-import { PhotoInput, PhotoPreview, HintInput } from "@/components/capture";
+import { PhotoInput, PhotoPreview, EmotionPicker, CameraCapture } from "@/components/capture";
 import { GeneratedResult } from "@/components/capture/GeneratedResult";
 import { useElapsedSeconds } from "@/hooks/useElapsedSeconds";
+import { EMOTIONS, LEVELS, LEVELLED } from "@/lib/emotions.js";
 
-const DEFAULT_MOOD = "I am feeling happy 😊";
+const DEFAULT_EMOTION = EMOTIONS[0];
+const DEFAULT_LEVEL = LEVELS[1];
 
 export default function CapturePage() {
   const router = useRouter();
   const [photo, setPhoto] = useState(null);
   const [preview, setPreview] = useState("");
-  const [mood, setMood] = useState(DEFAULT_MOOD);
+  const [emotion, setEmotion] = useState(DEFAULT_EMOTION);
+  const [level, setLevel] = useState(DEFAULT_LEVEL);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
   const [paused, setPaused] = useState(false);
@@ -30,6 +33,15 @@ export default function CapturePage() {
     setError("");
   };
 
+  const handleEmotionChange = (nextEmotion) => {
+    setEmotion(nextEmotion);
+    if (LEVELLED.includes(nextEmotion)) {
+      setLevel(DEFAULT_LEVEL);
+    } else {
+      setLevel(undefined);
+    }
+  };
+
   const handleGenerate = async () => {
     if (!photo) return;
 
@@ -38,10 +50,13 @@ export default function CapturePage() {
     setPaused(false);
 
     try {
+      const payload = { photo: preview, emotion };
+      if (LEVELLED.includes(emotion) && level) payload.level = level;
+
       const response = await fetch("/api/image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ photo: preview, hint: mood }),
+        body: JSON.stringify(payload),
       });
 
       if (response.status === 503) {
@@ -97,7 +112,8 @@ export default function CapturePage() {
           <>
             <PhotoInput value={photo} onChange={handlePhotoSelect} disabled={isGenerating || paused} />
             <PhotoPreview src={preview} />
-            <HintInput value={mood} onChange={setMood} />
+            <CameraCapture onPhoto={handlePhotoSelect} />
+            <EmotionPicker value={emotion} level={level} onChange={handleEmotionChange} onLevelChange={setLevel} />
           </>
         )}
 
