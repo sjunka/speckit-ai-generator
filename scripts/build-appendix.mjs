@@ -5,7 +5,7 @@ import { execSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-const SKIP = /^(docs\/|openspec\/|\.claude\/|\.agents\/|node_modules\/|public\/(icon|.*\.svg|favicon))|package-lock\.json|skills-lock\.json|\.mcp\.json|AGENTS\.md|CLAUDE\.md|README\.md|\.ico$|\.png$/;
+const SKIP = /^(docs\/|openspec\/|specs\/|\.specify\/|\.claude\/|\.agents\/|node_modules\/|public\/(icon|.*\.svg|favicon))|package-lock\.json|skills-lock\.json|\.mcp\.json|AGENTS\.md|CLAUDE\.md|README\.md|\.ico$|\.png$/;
 
 const ORDER = [
   ["Configuration", /^(package\.json|next\.config\.mjs|jsconfig\.json|postcss\.config\.mjs|eslint\.config\.mjs|vitest\.config\.mjs|vitest\.setup\.js|playwright\.config\.js|doctor\.config\.json|\.react-doctor-baseline|\.env\.local\.example|\.gitignore|\.github\/)/],

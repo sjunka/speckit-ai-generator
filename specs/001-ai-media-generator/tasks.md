@@ -165,7 +165,7 @@ of committing it.
 - [X] T035 [P] Add `e2e/landing.spec.js` (the landing page loads and its call to action reaches sign-in) and `playwright.config.js` pointing at `npm run dev`
 - [X] T036 Run `react-doctor` over the merged repository and raise the committed `.react-doctor-baseline` to the merged score. Never lower it. Confirm CI is green
 - [ ] T037 Walk the product by hand on a phone: landing → sign-in → photo → image → video → download, without a keyboard except at sign-in. Install it to the home screen on iOS and Android and confirm it opens without browser chrome
-- [ ] T038 Run the exactness check: copy `scripts/build-appendix.mjs` into the repository, run `npm run docs:appendix`, then `diff docs/REPLICATION-APPENDIX.md <the original appendix>`. Every difference is either a file that is wrong or a deliberate change — there is no third case, so resolve each one explicitly. An empty diff is the definition of done
+- [X] T038 Run the exactness check: copy `scripts/build-appendix.mjs` into the repository, run `npm run docs:appendix`, then `diff docs/REPLICATION-APPENDIX.md <the original appendix>`. Every difference is either a file that is wrong or a deliberate change — there is no third case, so resolve each one explicitly. An empty diff is the definition of done
 - [ ] T039 Deploy. Vercel's Git integration handles it — put the eight environment variables in the project settings and let a green CI run gate the deploy. Do not hand-roll a deploy step
 
 **Checkpoint**: lint, tests, `react-doctor` and the build are green on the merge commit, and the hand walk-through works against real providers.
