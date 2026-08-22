@@ -242,8 +242,8 @@ needs real keys, and Principle II's spirit — a suite that runs on a fork with 
 secrets — is worth more here than an authenticated journey the Vitest suite
 already covers at the component level.
 
-- [ ] T029 [P] [US3] Write `e2e/wall.spec.js` and commit it red: a browser with **no session** opens `/wall`, the `Wall` heading is visible, the URL is still `/wall`, and it was never redirected to `/sign-in` (SC-004). Commit as `test: a visitor with no session reaches the wall`
-- [ ] T030 [P] [US1] Write `e2e/gallery-requires-session.spec.js` and commit it red: a browser with no session opens `/gallery` and lands on `/sign-in`, proving the route side of FR-003 in a real browser rather than against a mocked matcher. Commit as `test: a visitor with no session is sent from the gallery to sign-in`
+- [X] T029 [P] [US3] Write `e2e/wall.spec.js` and commit it red: a browser with **no session** opens `/wall`, the `Wall` heading is visible, the URL is still `/wall`, and it was never redirected to `/sign-in` (SC-004). Commit as `test: a visitor with no session reaches the wall`
+- [X] T030 [P] [US1] Write `e2e/gallery-requires-session.spec.js` and commit it red: a browser with no session opens `/gallery` and lands on `/sign-in`, proving the route side of FR-003 in a real browser rather than against a mocked matcher. Commit as `test: a visitor with no session is sent from the gallery to sign-in`
 - [ ] T031 [US1] [US2] [US3] [US4] After the last block merges, run `npm run test:e2e` against `develop` for `e2e/landing.spec.js`, `e2e/wall.spec.js` and `e2e/gallery-requires-session.spec.js`. All three specs — 001's landing spec included, unchanged — must be green on the merge commit. A failure here is a merge defect, not an e2e defect: fix it where it belongs, not in `e2e/`
 
 **Checkpoint**: three green Playwright specs on the merge commit, with no
