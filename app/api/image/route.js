@@ -30,6 +30,10 @@ export const POST = async (request) => {
       kind: "image",
       status: "ready",
       url: imageUrl,
+      emotion,
+      // A happy record carries no level key at all, rather than a null one.
+      ...(level === undefined ? {} : { level }),
+      isPublic: false,
       createdAt: new Date(),
     });
 
