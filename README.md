@@ -167,7 +167,7 @@ git checkout main && git pull origin main
 Los tres siguientes arrancan al mismo tiempo, desde ya.
 
 ```bash
-# ── MATEO ── las pantallas
+# ── MATEO ── las pantallas.
 git checkout main && git pull origin main
 git checkout -b 001-frontend
 /speckit-implement fase 2
