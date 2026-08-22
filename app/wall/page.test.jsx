@@ -86,3 +86,35 @@ describe("Wall page", () => {
     expect(screen.getByText("Nothing published yet.")).toBeInTheDocument();
   });
 });
+
+// T014 — FR-029, asserted against the composed screen.
+describe("Wall screen — responsive and accessible", () => {
+  it("widens the layout at md and lg", async () => {
+    const { WallPage } = await load();
+
+    render(await WallPage());
+
+    expect(screen.getByRole("main")).toHaveClass("md:max-w-2xl", "lg:max-w-4xl");
+  });
+
+  it("fits 360px without a horizontal scroll", async () => {
+    const { WallPage } = await load();
+    const { renderAt360px } = await import("@/test/viewport.js");
+
+    const { container, cleanup } = renderAt360px(await WallPage());
+
+    expect(container.scrollWidth).toBeLessThanOrEqual(360);
+    cleanup();
+  });
+
+  it("gives the load-more control a 44px height and a visible focus ring", async () => {
+    const { WallPage, listPublic } = await load();
+    listPublic.mockResolvedValue({ items: [published(ITEM_IMAGE)], hasMore: true });
+
+    render(await WallPage());
+
+    const control = screen.getByRole("button", { name: "Load more" });
+    expect(control.className).toMatch(/h-11/);
+    expect(control.className).toMatch(/focus:outline/);
+  });
+});

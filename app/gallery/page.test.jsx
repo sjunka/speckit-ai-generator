@@ -65,3 +65,59 @@ describe("Gallery page", () => {
     expect(screen.getByRole("link", { name: "Capture something" })).toHaveAttribute("href", "/capture");
   });
 });
+
+// T014 — FR-029, asserted against the composed screen.
+describe("Gallery screen — responsive and accessible", () => {
+  it("widens the layout at md and lg", async () => {
+    const { GalleryPage } = await load();
+
+    render(await GalleryPage());
+
+    expect(screen.getByRole("main")).toHaveClass("md:max-w-2xl", "lg:max-w-4xl");
+  });
+
+  it("fits 360px without a horizontal scroll", async () => {
+    const { GalleryPage } = await load();
+    const { renderAt360px } = await import("@/test/viewport.js");
+
+    const { container, cleanup } = renderAt360px(await GalleryPage());
+
+    expect(container.scrollWidth).toBeLessThanOrEqual(360);
+    cleanup();
+  });
+
+  it("gives every control a 44px height and a visible focus ring", async () => {
+    const { GalleryPage, listByUser } = await load();
+    listByUser.mockResolvedValue({ items: [ITEM_IMAGE], hasMore: true });
+
+    render(await GalleryPage());
+
+    screen.getAllByRole("button").forEach((control) => {
+      expect(control.className).toMatch(/h-11/);
+      expect(control.className).toMatch(/focus:outline/);
+    });
+  });
+
+  it("clears 4.5:1 for body text on every surface step", async () => {
+    const { assertBodyTextContrast } = await import("@/test/contrast.js");
+
+    assertBodyTextContrast();
+  });
+
+  it("uses no raw palette hex outside app/globals.css", async () => {
+    const { readFileSync } = await import("node:fs");
+    const files = [
+      "app/gallery/page.jsx",
+      "app/wall/page.jsx",
+      "components/gallery/GenerationCard.jsx",
+      "components/gallery/GalleryList.jsx",
+      "components/gallery/PublishToggle.jsx",
+      "components/wall/WallList.jsx",
+      "components/Nav.jsx",
+    ];
+
+    files.forEach((file) => {
+      expect(readFileSync(`${process.cwd()}/${file}`, "utf8")).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
+    });
+  });
+});
