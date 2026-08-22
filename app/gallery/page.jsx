@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { listByUser } from "@/lib/generations.js";
 import { Nav } from "@/components/Nav";
-import { GalleryList } from "@/components/gallery/GalleryList";
+import { GalleryList } from "@/components/gallery";
 
 // The first page is one database round trip inside this render — no fetch, no
 // HTTP, no /api/gallery. Pages two and beyond are the list's own click.

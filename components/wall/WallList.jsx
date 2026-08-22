@@ -9,13 +9,13 @@ import { GenerationCard } from "@/components/gallery/GenerationCard";
 // Same shape as the gallery list, minus the publish control: unpublishing is
 // the owner's alone and happens in the gallery (FR-017).
 export const WallList = ({ items: seed, hasMore: seedHasMore }) => {
-  const [items, setItems] = useState(seed);
-  const [hasMore, setHasMore] = useState(seedHasMore);
-  const [page, setPage] = useState(0);
+  const [loaded, setLoaded] = useState({ items: seed, hasMore: seedHasMore, page: 0 });
   const [busy, setBusy] = useState(false);
 
+  const { items, hasMore } = loaded;
+
   const handleLoadMore = async () => {
-    const next = page + 1;
+    const next = loaded.page + 1;
     setBusy(true);
 
     try {
@@ -23,9 +23,11 @@ export const WallList = ({ items: seed, hasMore: seedHasMore }) => {
 
       if (response.ok) {
         const data = await response.json();
-        setItems((current) => [...current, ...data.items]);
-        setHasMore(data.hasMore);
-        setPage(next);
+        setLoaded((current) => ({
+          items: [...current.items, ...data.items],
+          hasMore: data.hasMore,
+          page: next,
+        }));
       }
     } catch {
       // Nothing is appended and the control comes back.

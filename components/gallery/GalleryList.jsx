@@ -10,14 +10,17 @@ import { PublishToggle } from "./PublishToggle";
 // page is already here, and pages two and beyond are a click (FR-006, SC-006).
 // useState and fetch, nothing more — no data-fetching library, no state
 // manager, and no useEffect that fetches.
+// items, hasMore and page move together on every load, so they are one piece
+// of state rather than three — which also keeps page out of the "state only a
+// handler reads" shape.
 export const GalleryList = ({ items: seed, hasMore: seedHasMore }) => {
-  const [items, setItems] = useState(seed);
-  const [hasMore, setHasMore] = useState(seedHasMore);
-  const [page, setPage] = useState(0);
+  const [loaded, setLoaded] = useState({ items: seed, hasMore: seedHasMore, page: 0 });
   const [busy, setBusy] = useState(false);
 
+  const { items, hasMore } = loaded;
+
   const handleLoadMore = async () => {
-    const next = page + 1;
+    const next = loaded.page + 1;
     setBusy(true);
 
     try {
@@ -25,9 +28,11 @@ export const GalleryList = ({ items: seed, hasMore: seedHasMore }) => {
 
       if (response.ok) {
         const data = await response.json();
-        setItems((current) => [...current, ...data.items]);
-        setHasMore(data.hasMore);
-        setPage(next);
+        setLoaded((current) => ({
+          items: [...current.items, ...data.items],
+          hasMore: data.hasMore,
+          page: next,
+        }));
       }
     } catch {
       // Nothing is appended and the control comes back; the viewer can retry.

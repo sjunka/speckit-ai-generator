@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Card, StatusBadge } from "@/components/ui";
 
 // An entry with no url has nothing to show yet — a video still rendering is the
@@ -26,9 +27,18 @@ const Media = ({ item }) => {
     );
   }
 
+  // next/image needs a sized parent to fill; the host allowlist it needs in
+  // production is already in next.config.mjs, and the Vitest setup swaps it for
+  // a plain <img> because jsdom cannot run the optimization loader (trap 7).
   return (
-    <div className="overflow-hidden rounded-[8px] border border-hairline bg-surface-1">
-      <img src={item.url} alt="Generation" className="aspect-square w-full object-cover" />
+    <div className="relative aspect-square w-full overflow-hidden rounded-[8px] border border-hairline bg-surface-1">
+      <Image
+        src={item.url}
+        alt="Generation"
+        fill
+        sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+        className="object-cover"
+      />
     </div>
   );
 };
