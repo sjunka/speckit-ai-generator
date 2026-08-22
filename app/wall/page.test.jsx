@@ -7,7 +7,7 @@ import { handlers } from "@/test/msw/handlers.js";
 import { ITEM_IMAGE, ITEM_PRE_002 } from "@/test/fixtures.js";
 import { renderAt360px } from "@/test/viewport.js";
 import * as wallComponents from "@/components/wall";
-import WallPage from "./page.jsx";
+import WallPage, { dynamic } from "./page.jsx";
 
 vi.mock("@/lib/generations.js", () => ({
   listPublic: vi.fn(),
@@ -156,5 +156,14 @@ describe("Wall screen — FR-029", () => {
       expect(control).toHaveClass("h-11");
       expect(control.className).toMatch(/focus:outline-2/);
     });
+  });
+});
+
+describe("Wall screen — rendered per request (FR-019)", () => {
+  it("opts out of the static prerender, so newly published work is on it", () => {
+    // Nothing on this page is request-specific — no auth(), no searchParams —
+    // so Next prerenders it at build time by default and the wall freezes at
+    // whatever was published when the build ran.
+    expect(dynamic).toBe("force-dynamic");
   });
 });
