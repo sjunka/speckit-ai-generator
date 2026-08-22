@@ -44,7 +44,7 @@ describe("phase 3 backend", () => {
   });
 
   it("creates an image record when generation succeeds", async () => {
-    const response = await createImage(makeRequest({ photo: "data:image/png;base64,AAAA", hint: "happy" }));
+    const response = await createImage(makeRequest({ photo: "data:image/png;base64,AAAA", emotion: "happy" }));
     expect(response.status).toBe(200);
     const json = await response.json();
     expect(json.imageUrl).toContain("https://blob.test/");
