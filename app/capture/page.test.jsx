@@ -351,3 +351,75 @@ describe("Capture screen — the camera while generation is paused", () => {
     expect(fetchMock.mock.calls).toHaveLength(callsBefore);
   });
 });
+
+// T021 — FR-029 for the controls this feature adds.
+describe("Capture screen — responsive and accessible", () => {
+  beforeEach(() => {
+    const stream = { tracks: [{ stop: vi.fn() }] };
+    stream.getTracks = () => stream.tracks;
+    Object.defineProperty(navigator, "mediaDevices", {
+      value: { getUserMedia: vi.fn(async () => stream) },
+      configurable: true,
+      writable: true,
+    });
+  });
+
+  it("widens the layout at md and lg", () => {
+    render(<CapturePage />);
+
+    expect(screen.getByRole("main")).toHaveClass("md:max-w-2xl", "lg:max-w-4xl");
+  });
+
+  it("fits 360px without a horizontal scroll", async () => {
+    const { renderAt360px } = await import("@/test/viewport.js");
+
+    const { container, cleanup } = renderAt360px(<CapturePage />);
+
+    expect(container.scrollWidth).toBeLessThanOrEqual(360);
+    cleanup();
+  });
+
+  it("gives the emotion and level selects 44px and a visible focus ring", async () => {
+    render(<CapturePage />);
+
+    expect(screen.getByLabelText("Emotion").className).toMatch(/h-11/);
+    expect(screen.getByLabelText("Emotion").className).toMatch(/focus:outline/);
+
+    await userEvent.selectOptions(screen.getByLabelText("Emotion"), "angry");
+    expect(screen.getByLabelText("Level").className).toMatch(/h-11/);
+    expect(screen.getByLabelText("Level").className).toMatch(/focus:outline/);
+  });
+
+  it("gives every camera control 44px and a visible focus ring", async () => {
+    render(<CapturePage />);
+
+    const onControl = screen.getByRole("button", { name: "Turn camera on" });
+    expect(onControl.className).toMatch(/h-11/);
+    expect(onControl.className).toMatch(/focus:outline/);
+
+    await userEvent.click(onControl);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Take photo" })).toBeInTheDocument());
+
+    ["Take photo", "Switch camera", "Turn camera off"].forEach((name) => {
+      const control = screen.getByRole("button", { name });
+      expect(control.className).toMatch(/h-11/);
+      expect(control.className).toMatch(/focus:outline/);
+    });
+  });
+
+  it("clears 4.5:1 for body text on every surface step", async () => {
+    const { assertBodyTextContrast } = await import("@/test/contrast.js");
+
+    assertBodyTextContrast();
+  });
+
+  it("uses no raw palette hex in the files this block owns", async () => {
+    const { readFileSync } = await import("node:fs");
+
+    ["app/capture/page.jsx", "components/capture/EmotionPicker.jsx", "components/capture/CameraCapture.jsx"].forEach(
+      (file) => {
+        expect(readFileSync(`${process.cwd()}/${file}`, "utf8")).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
+      }
+    );
+  });
+});
