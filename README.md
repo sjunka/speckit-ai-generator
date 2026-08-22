@@ -466,3 +466,79 @@ pegar en pantalla.
 
 Cierre: de una especificación escrita a una app funcionando, con el trabajo
 repartido entre cinco personas.
+
+---
+
+## Las cuentas y las ocho llaves (T030)
+
+Copia [`.env.local.example`](.env.local.example) a `.env.local` y llénalo. Ese
+archivo nunca se commitea — el `.gitignore` ignora `.env*` y solo deja pasar el
+`.example`. Las mismas ocho variables van después en Vercel, en *Project
+Settings → Environment Variables*, antes del primer deploy (T039).
+
+**Nada de esto lo necesita la suite de pruebas.** Por la Principio II de la
+constitución el `npm test` corre sin llaves, sin red y sin base de datos. Las
+cuentas son para que la app funcione de verdad.
+
+### Clerk — sesiones
+
+1. Crea una aplicación en [dashboard.clerk.com](https://dashboard.clerk.com) y
+   habilita **Google** y **email** como métodos de acceso.
+2. De *API Keys* copia `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` y `CLERK_SECRET_KEY`.
+3. En *Users*, sobre tu propio usuario, edita **Public metadata** y ponle:
+   ```json
+   { "role": "admin" }
+   ```
+   El dashboard se guarda con ese claim (`sessionClaims.publicMetadata.role`),
+   no con el `OWNER_ID`.
+4. Copia el id de ese usuario (`user_…`) a `OWNER_ID`. Esa variable es la que
+   usa `isOwner` para proteger `/api/settings`.
+
+Son dos chequeos distintos a propósito: la página mira el claim de la sesión, la
+ruta mira el id. Si solo pones uno, la pantalla carga pero el interruptor no
+guarda, o al revés.
+
+### MongoDB Atlas — la base de datos
+
+1. Crea un clúster **M0** (gratis) y una base de datos llamada `ia-generator`.
+2. En *Network Access* agrega `0.0.0.0/0`. Vercel Hobby no tiene IP de salida
+   fija, así que no hay una lista blanca más estrecha que sirva.
+3. Copia la cadena de conexión a `MONGODB_URI`. **Lleva la contraseña dentro —
+   nunca la commitees.**
+
+### Vercel Blob — las imágenes y los videos
+
+Crea un store de Blob en el proyecto de Vercel y copia su token de lectura y
+escritura a `BLOB_READ_WRITE_TOKEN`.
+
+Sin token la app **no se cae**: `lib/blob.js` escribe en `public/uploads` cuando
+`NODE_ENV !== "production"`. Pero es un techo consciente, documentado en la
+tabla de complejidad del plan — el proveedor de IA no puede alcanzar un archivo
+en tu `localhost`, así que una generación real igual necesita el token o un
+túnel.
+
+### Higgsfield — el proveedor de IA
+
+Saca la key y el secret de [cloud.higgsfield.ai](https://cloud.higgsfield.ai) y
+ponlos en `HIGGSFIELD_API_KEY` y `HIGGSFIELD_API_SECRET`.
+
+Verifica los ids de modelo contra la página *explore* antes de dar por buena la
+configuración. El de imagen tiene que ser `higgsfield-ai/soul/reference`:
+`soul/standard` es texto-a-imagen y **descarta la foto en silencio**, que es la
+peor forma de fallar porque la app parece funcionar.
+
+`HIGGSFIELD_VIDEO_MODEL` se deja comentado. La calidad del video se elige desde
+el dashboard (`lite`/`standard`/`turbo`); esa variable solo existe para forzar
+un modelo por encima de esa configuración.
+
+### Comprobación a mano
+
+Con `.env.local` lleno y `npm run dev` corriendo:
+
+1. `/dashboard` renderiza para tu usuario admin.
+2. `/dashboard` devuelve **404** para un segundo usuario sin el `role: admin` —
+   y ese 404 no muestra ningún valor de configuración.
+3. Apaga el interruptor: la siguiente generación responde **503 "Generation is
+   paused"**, y la pantalla de captura lo muestra como pausa, no como error.
+4. Enciéndelo otra vez: la generación vuelve. **Sin redesplegar** — ese es el
+   punto de toda la Historia 4.
