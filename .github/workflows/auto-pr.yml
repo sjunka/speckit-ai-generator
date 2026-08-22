@@ -1,54 +1,54 @@
-name: Auto-PR hacia develop
+# name: Auto-PR hacia develop
 
-# Al subir cualquier rama que no sea main ni develop, abre el PR contra develop
-# (si no existe ya). El CI corre solo: lint + tests + build + chequeo de
-# conflictos. El merge lo hace una persona, nunca es automático.
+# # Al subir cualquier rama que no sea main ni develop, abre el PR contra develop
+# # (si no existe ya). El CI corre solo: lint + tests + build + chequeo de
+# # conflictos. El merge lo hace una persona, nunca es automático.
 
-on:
-  push:
-    branches-ignore:
-      - main
-      - develop
-      - "dependabot/**"
+# on:
+#   push:
+#     branches-ignore:
+#       - main
+#       - develop
+#       - "dependabot/**"
 
-permissions:
-  contents: read
-  pull-requests: write
+# permissions:
+#   contents: read
+#   pull-requests: write
 
-jobs:
-  abrir-pr:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          # Historia completa: el checkout por defecto es shallow y de una sola
-          # rama, y entonces origin/develop no existe dentro del runner.
-          fetch-depth: 0
+# jobs:
+#   abrir-pr:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v4
+#         with:
+#           # Historia completa: el checkout por defecto es shallow y de una sola
+#           # rama, y entonces origin/develop no existe dentro del runner.
+#           fetch-depth: 0
 
-      - name: Traer develop
-        run: git fetch origin develop:refs/remotes/origin/develop
+#       - name: Traer develop
+#         run: git fetch origin develop:refs/remotes/origin/develop
 
-      - name: Crear PR si no existe
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BRANCH: ${{ github.ref_name }}
-        run: |
-          set -euo pipefail
+#       - name: Crear PR si no existe
+#         env:
+#           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#           BRANCH: ${{ github.ref_name }}
+#         run: |
+#           set -euo pipefail
 
-          EXISTING=$(gh pr list --head "$BRANCH" --base develop --state open --json number -q '.[0].number' || true)
+#           EXISTING=$(gh pr list --head "$BRANCH" --base develop --state open --json number -q '.[0].number' || true)
 
-          if [ -z "$EXISTING" ]; then
-            # Si la rama no aporta commits nuevos sobre develop, no hay nada que integrar.
-            if [ -z "$(git log origin/develop..HEAD --oneline)" ]; then
-              echo "La rama no tiene commits por delante de develop. Nada que hacer."
-              exit 0
-            fi
-            gh pr create \
-              --base develop \
-              --head "$BRANCH" \
-              --title "$BRANCH -> develop" \
-              --body "PR abierto automáticamente al subir \`$BRANCH\`. Revisa el CI y mergea a mano cuando esté en verde."
-            echo "PR creado."
-          else
-            echo "Ya existe el PR #$EXISTING, no se crea otro."
-          fi
+#           if [ -z "$EXISTING" ]; then
+#             # Si la rama no aporta commits nuevos sobre develop, no hay nada que integrar.
+#             if [ -z "$(git log origin/develop..HEAD --oneline)" ]; then
+#               echo "La rama no tiene commits por delante de develop. Nada que hacer."
+#               exit 0
+#             fi
+#             gh pr create \
+#               --base develop \
+#               --head "$BRANCH" \
+#               --title "$BRANCH -> develop" \
+#               --body "PR abierto automáticamente al subir \`$BRANCH\`. Revisa el CI y mergea a mano cuando esté en verde."
+#             echo "PR creado."
+#           else
+#             echo "Ya existe el PR #$EXISTING, no se crea otro."
+#           fi
