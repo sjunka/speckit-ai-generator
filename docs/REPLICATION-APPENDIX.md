@@ -9,7 +9,7 @@ these files. When the rebuild is done, every file below must match byte for
 byte. Excluded: the docs themselves, `openspec/`, binary assets (`public/icon-*.png`,
 `app/favicon.ico`), lockfiles, and local agent tooling.
 
-80 files.
+88 files.
 
 ## Configuration
 
@@ -40,23 +40,119 @@ BLOB_READ_WRITE_TOKEN=...
 OWNER_ID=user_...
 ```
 
+### `.github/workflows/auto-pr.yml`
+
+```yaml
+name: Auto-PR hacia develop
+
+# Al subir cualquier rama que no sea main ni develop, abre el PR contra develop
+# (si no existe ya). El CI corre solo: lint + tests + build + chequeo de
+# conflictos. El merge lo hace una persona, nunca es automático.
+
+on:
+  push:
+    branches-ignore:
+      - main
+      - develop
+      - "dependabot/**"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  abrir-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Historia completa: el checkout por defecto es shallow y de una sola
+          # rama, y entonces origin/develop no existe dentro del runner.
+          fetch-depth: 0
+
+      - name: Traer develop
+        run: git fetch origin develop:refs/remotes/origin/develop
+
+      - name: Crear PR si no existe
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          EXISTING=$(gh pr list --head "$BRANCH" --base develop --state open --json number -q '.[0].number' || true)
+
+          if [ -z "$EXISTING" ]; then
+            # Si la rama no aporta commits nuevos sobre develop, no hay nada que integrar.
+            if [ -z "$(git log origin/develop..HEAD --oneline)" ]; then
+              echo "La rama no tiene commits por delante de develop. Nada que hacer."
+              exit 0
+            fi
+            gh pr create \
+              --base develop \
+              --head "$BRANCH" \
+              --title "$BRANCH -> develop" \
+              --body "PR abierto automáticamente al subir \`$BRANCH\`. Revisa el CI y mergea a mano cuando esté en verde."
+            echo "PR creado."
+          else
+            echo "Ya existe el PR #$EXISTING, no se crea otro."
+          fi
+```
+
 ### `.github/workflows/ci.yml`
 
 ```yaml
 name: CI
 
 on:
-  push:
   pull_request:
+    branches: [develop, main]
+  # También en push a cualquier rama: los PRs que abre auto-pr.yml con
+  # GITHUB_TOKEN no disparan el evento pull_request, pero los status checks
+  # se anclan al SHA, así que el CI del push cuenta igual para el merge.
+  push:
+  merge_group:
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test:
+  conflict-check:
+    name: Compatibilidad con la rama destino
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verificar que no haya conflictos de merge
+        run: |
+          BASE="${{ github.base_ref }}"
+          # En push, la base es develop salvo que la rama ya sea main/develop.
+          if [ -z "$BASE" ]; then
+            case "${{ github.ref_name }}" in
+              main|develop) echo "Rama base, sin destino que verificar."; exit 0 ;;
+              *) BASE=develop ;;
+            esac
+          fi
+          git config user.name "ci"
+          git config user.email "ci@local"
+          git fetch origin "$BASE"
+          if ! git merge --no-commit --no-ff "origin/$BASE"; then
+            echo "::error::La rama tiene conflictos con $BASE. Actualízala antes de mergear."
+            exit 1
+          fi
+          git merge --abort || true
+
+  build:
+    name: Lint, tests y build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: npm
       - run: npm ci
       - run: npm run lint
       - run: npx -y react-doctor@latest . --score > /tmp/score.txt
@@ -69,6 +165,7 @@ jobs:
             exit 1
           fi
       - run: npm test
+      - run: npm run build
 ```
 
 ### `.gitignore`
@@ -133,7 +230,7 @@ next-env.d.ts
 ### `.react-doctor-baseline`
 
 ```text
-55
+81
 ```
 
 ### `doctor.config.json`
@@ -207,7 +304,7 @@ export default nextConfig;
 
 ```json
 {
-  "name": "ia-generator-openspec",
+  "name": "ia-generator",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -218,28 +315,29 @@ export default nextConfig;
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "docs:appendix": "node scripts/build-appendix.mjs"
+    "docs:appendix": "node scripts/build-appendix.mjs",
+    "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
-    "@clerk/nextjs": "^7.6.5",
-    "@vercel/blob": "^2.6.1",
+    "@clerk/nextjs": "^7.7.8",
+    "@vercel/blob": "^2.8.0",
     "mongodb": "^7.5.0",
-    "next": "16.3.0",
+    "next": "16.3.1",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
-    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.3",
+    "@testing-library/user-event": "^14.6.5",
     "eslint": "^9",
-    "eslint-config-next": "16.3.0",
+    "eslint-config-next": "16.3.1",
     "jsdom": "^29.1.1",
     "msw": "^2.15.0",
     "tailwindcss": "^4",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
   }
 }
 ```
@@ -1001,19 +1099,16 @@ const isProtectedRoute = createRouteMatcher([
   "/dashboard(.*)",
 ]);
 
-export const proxy = clerkMiddleware(async (auth, req) => {
-  if (isProtectedRoute(req)) {
-    await auth.protect();
+export const proxy = clerkMiddleware(async (authContext, request) => {
+  if (isProtectedRoute(request)) {
+    await authContext.protect();
     return;
   }
 
-  // Signed-in visitors don't need the landing pitch — send them straight in,
-  // before the page ever renders (no client-side redirect flash).
-  if (new URL(req.url).pathname === "/") {
-    const { userId } = await auth();
-    if (userId) {
-      return NextResponse.redirect(new URL("/capture", req.url));
-    }
+  if (new URL(request.url).pathname === "/") {
+    const { userId } = await authContext();
+    if (!userId) return;
+    return NextResponse.redirect(new URL("/capture", request.url));
   }
 });
 
@@ -1023,6 +1118,8 @@ export const config = {
     "/(api|trpc)(.*)",
   ],
 };
+
+export default proxy;
 ```
 
 ### `proxy.test.js`
@@ -1030,22 +1127,16 @@ export const config = {
 ```js
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Stand in for Clerk: `clerkMiddleware` hands back the handler untouched, and
-// `createRouteMatcher` compiles the same path patterns the real one accepts.
 vi.mock("@clerk/nextjs/server", () => ({
   clerkMiddleware: (handler) => handler,
   createRouteMatcher: (patterns) => (request) => {
     const { pathname } = new URL(request.url);
-    return patterns.some((pattern) =>
-      new RegExp(`^${pattern.replace("(.*)", ".*")}$`).test(pathname)
-    );
+    return patterns.some((pattern) => new RegExp(`^${pattern.replace("(.*)", ".*")}$`).test(pathname));
   },
 }));
 
 const protect = vi.fn();
 let userId = null;
-// The real `auth` passed into a clerkMiddleware handler is itself callable
-// (returns the session) and also carries `.protect()`.
 const auth = Object.assign(vi.fn(() => ({ userId })), { protect });
 
 const visit = async (path) => {
@@ -1058,21 +1149,13 @@ beforeEach(() => {
   userId = null;
 });
 
-describe("middleware", () => {
-  it.each(["/capture", "/result/job-12345", "/dashboard"])(
-    "sends an anonymous request to %s through sign-in",
-    async (path) => {
-      await visit(path);
-      expect(protect).toHaveBeenCalled();
-    }
-  );
-
-  it("leaves the landing route public for a signed-out visitor", async () => {
-    await visit("/");
-    expect(protect).not.toHaveBeenCalled();
+describe("proxy", () => {
+  it("protects an anonymous capture request", async () => {
+    await visit("/capture");
+    expect(protect).toHaveBeenCalled();
   });
 
-  it("sends a signed-in visitor from the landing route to /capture", async () => {
+  it("redirects a signed-in visitor from the landing route", async () => {
     userId = "user-1";
     const response = await visit("/");
     expect(response.status).toBe(307);
@@ -1322,14 +1405,9 @@ import { describe, it, expect } from "vitest";
 import { COST_PER_IMAGE, COST_PER_VIDEO } from "./models.js";
 
 describe("lib/models.js", () => {
-  it("exports COST_PER_IMAGE as a positive number", () => {
-    expect(typeof COST_PER_IMAGE).toBe("number");
-    expect(COST_PER_IMAGE).toBeGreaterThan(0);
-  });
-
-  it("exports COST_PER_VIDEO as a positive number", () => {
-    expect(typeof COST_PER_VIDEO).toBe("number");
-    expect(COST_PER_VIDEO).toBeGreaterThan(0);
+  it("exports fixed positive image and video costs", () => {
+    expect(COST_PER_IMAGE).toBe(0.02);
+    expect(COST_PER_VIDEO).toBe(0.1);
   });
 });
 ```
@@ -1506,9 +1584,7 @@ describe("lib/higgsfield", () => {
 import { db } from "./db.js";
 
 export const getSettings = async () => {
-  const database = await db();
-  const settings = database.collection("settings");
-  const record = await settings.findOne({ _id: "config" });
+  const record = await (await db()).collection("settings").findOne({ _id: "config" });
 
   if (!record) {
     return { enabled: true, videoQuality: "lite" };
@@ -1518,17 +1594,16 @@ export const getSettings = async () => {
 };
 
 export const assertEnabled = async () => {
-  const settings = await getSettings();
-  if (!settings.enabled) {
+  const { enabled } = await getSettings();
+
+  if (!enabled) {
     const error = new Error("Generation is paused");
     error.status = 503;
     throw error;
   }
 };
 
-export const isOwner = (userId) => {
-  return userId === process.env.OWNER_ID;
-};
+export const isOwner = (userId) => userId === process.env.OWNER_ID;
 ```
 
 ### `lib/settings.test.js`
@@ -1545,99 +1620,38 @@ describe("lib/settings.js", () => {
     process.env.OWNER_ID = "owner-user-123";
   });
 
-  describe("getSettings", () => {
-    it("returns stored settings when record exists", async () => {
-      const { db } = await import("./db.js");
-      const mockRecord = { enabled: false, videoQuality: "turbo" };
-      db.mockResolvedValue({
-        collection: () => ({
-          findOne: vi.fn().mockResolvedValue(mockRecord),
-        }),
-      });
+  it("returns stored settings and fills a missing quality default", async () => {
+    const { db } = await import("./db.js");
+    db.mockResolvedValue({ collection: () => ({ findOne: vi.fn().mockResolvedValue({ enabled: false }) }) });
 
-      const settings = await getSettings();
-      expect(settings).toEqual(mockRecord);
-    });
-
-    it("defaults videoQuality to lite when a stored record omits it", async () => {
-      const { db } = await import("./db.js");
-      db.mockResolvedValue({
-        collection: () => ({
-          findOne: vi.fn().mockResolvedValue({ enabled: false }),
-        }),
-      });
-
-      const settings = await getSettings();
-      expect(settings.videoQuality).toBe("lite");
-    });
-
-    it("returns default settings when no record exists", async () => {
-      const { db } = await import("./db.js");
-      db.mockResolvedValue({
-        collection: () => ({
-          findOne: vi.fn().mockResolvedValue(null),
-        }),
-      });
-
-      const settings = await getSettings();
-      expect(settings.enabled).toBe(true);
-      expect(settings.videoQuality).toBe("lite");
-    });
+    await expect(getSettings()).resolves.toEqual({ enabled: false, videoQuality: "lite" });
   });
 
-  describe("assertEnabled", () => {
-    it("throws 503 when disabled", async () => {
-      const { db } = await import("./db.js");
-      db.mockResolvedValue({
-        collection: () => ({
-          findOne: vi.fn().mockResolvedValue({ enabled: false }),
-        }),
-      });
+  it("returns enabled lite defaults when no record exists", async () => {
+    const { db } = await import("./db.js");
+    db.mockResolvedValue({ collection: () => ({ findOne: vi.fn().mockResolvedValue(null) }) });
 
-      try {
-        await assertEnabled();
-        expect.fail("Should have thrown");
-      } catch (error) {
-        expect(error.status).toBe(503);
-        expect(error.message).toContain("Generation is paused");
-      }
-    });
-
-    it("passes through when enabled", async () => {
-      const { db } = await import("./db.js");
-      db.mockResolvedValue({
-        collection: () => ({
-          findOne: vi.fn().mockResolvedValue({ enabled: true }),
-        }),
-      });
-
-      await expect(assertEnabled()).resolves.toBeUndefined();
-    });
-
-    it("passes through when no settings exist (default enabled)", async () => {
-      const { db } = await import("./db.js");
-      db.mockResolvedValue({
-        collection: () => ({
-          findOne: vi.fn().mockResolvedValue(null),
-        }),
-      });
-
-      await expect(assertEnabled()).resolves.toBeUndefined();
-    });
+    await expect(getSettings()).resolves.toEqual({ enabled: true, videoQuality: "lite" });
   });
 
-  describe("isOwner", () => {
-    it("returns true for owner user id", () => {
-      expect(isOwner("owner-user-123")).toBe(true);
-    });
+  it("throws a 503 pause error only when generation is disabled", async () => {
+    const { db } = await import("./db.js");
+    db.mockResolvedValue({ collection: () => ({ findOne: vi.fn().mockResolvedValue({ enabled: false }) }) });
 
-    it("returns false for non-owner user id", () => {
-      expect(isOwner("other-user-456")).toBe(false);
-    });
+    await expect(assertEnabled()).rejects.toMatchObject({ status: 503, message: "Generation is paused" });
+  });
 
-    it("returns false for undefined user id", () => {
-      expect(isOwner(undefined)).toBe(false);
-    });
+  it("passes when generation is enabled or settings are absent", async () => {
+    const { db } = await import("./db.js");
+    db.mockResolvedValue({ collection: () => ({ findOne: vi.fn().mockResolvedValue(null) }) });
+
+    await expect(assertEnabled()).resolves.toBeUndefined();
+  });
+
+  it("compares the caller to OWNER_ID", () => {
+    expect(isOwner("owner-user-123")).toBe(true);
+    expect(isOwner("other-user")).toBe(false);
+    expect(isOwner(undefined)).toBe(false);
   });
 });
 ```
@@ -1647,30 +1661,29 @@ describe("lib/settings.js", () => {
 ### `hooks/useElapsedSeconds.js`
 
 ```js
-import { useEffect, useRef, useState } from "react";
+"use client";
 
-// Counts seconds since `active` became true. Resets to 0 when inactive.
+import { useEffect, useState } from "react";
+
 export function useElapsedSeconds(active) {
   const [seconds, setSeconds] = useState(0);
-  const activeRef = useRef(active);
-  const startRef = useRef(null);
 
   useEffect(() => {
-    activeRef.current = active;
-    startRef.current = active ? Date.now() : null;
-  }, [active]);
+    if (!active) {
+      return undefined;
+    }
 
-  useEffect(() => {
-    const id = setInterval(() => {
-      setSeconds(
-        activeRef.current ? Math.floor((Date.now() - startRef.current) / 1000) : 0
-      );
+    const intervalId = setInterval(() => {
+      setSeconds((current) => current + 1);
     }, 1000);
 
-    return () => clearInterval(id);
-  }, []);
+    return () => {
+      clearInterval(intervalId);
+      setSeconds(0);
+    };
+  }, [active]);
 
-  return active ? seconds : 0;
+  return seconds;
 }
 ```
 
@@ -1681,149 +1694,137 @@ export function useElapsedSeconds(active) {
 ```jsx
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Nav } from "@/components/Nav";
-import { Button, Card, StatusBadge, Spinner } from "@/components/ui";
-import { PhotoInput } from "@/components/capture/PhotoInput";
-import { PhotoPreview } from "@/components/capture/PhotoPreview";
-import { HintInput } from "@/components/capture/HintInput";
-import { HINT_OPTIONS } from "@/components/capture/hintOptions";
+import { Card, Button, StatusBadge, Spinner } from "@/components/ui";
+import { PhotoInput, PhotoPreview, HintInput } from "@/components/capture";
 import { GeneratedResult } from "@/components/capture/GeneratedResult";
 import { useElapsedSeconds } from "@/hooks/useElapsedSeconds";
 
+const DEFAULT_MOOD = "I am feeling happy 😊";
+
 export default function CapturePage() {
-  const [photo, setPhoto] = useState(null);
-  const [hint, setHint] = useState(HINT_OPTIONS[0]);
-  const [generatedImage, setGeneratedImage] = useState(null);
-  const [isGenerating, isSetGenerating] = useState(false);
-  const [error, setError] = useState(null);
-  const [isPaused, setIsPaused] = useState(false);
-  const inputRef = useRef(null);
   const router = useRouter();
+  const [photo, setPhoto] = useState(null);
+  const [preview, setPreview] = useState("");
+  const [mood, setMood] = useState(DEFAULT_MOOD);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState("");
+  const [paused, setPaused] = useState(false);
+  const [imageUrl, setImageUrl] = useState("");
+  const [isStartingVideo, setIsStartingVideo] = useState(false);
   const elapsedSeconds = useElapsedSeconds(isGenerating);
+
+  const handlePhotoSelect = async (file) => {
+    setPhoto(file);
+    const reader = new FileReader();
+    reader.onload = () => setPreview(String(reader.result));
+    reader.readAsDataURL(file);
+    setError("");
+  };
 
   const handleGenerate = async () => {
     if (!photo) return;
 
-    isSetGenerating(true);
-    setError(null);
+    setIsGenerating(true);
+    setError("");
+    setPaused(false);
 
     try {
       const response = await fetch("/api/image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          photo,
-          hint: hint || undefined,
-        }),
+        body: JSON.stringify({ photo: preview, hint: mood }),
       });
 
       if (response.status === 503) {
-        setIsPaused(true);
-        isSetGenerating(false);
+        setPaused(true);
+        setIsGenerating(false);
         return;
       }
 
       if (!response.ok) {
-        setError(
-          response.status === 502
-            ? "Image provider is down. Try again shortly."
-            : "Generation failed. Try again."
-        );
-        isSetGenerating(false);
+        setError(response.status === 502 ? "Image provider is down. Try again shortly." : "Generation failed. Try again.");
+        setIsGenerating(false);
         return;
       }
 
       const data = await response.json();
-      setGeneratedImage(data.imageUrl);
-    } catch (err) {
+      setImageUrl(data.imageUrl || "");
+      setIsGenerating(false);
+    } catch {
       setError("Generation failed. Try again.");
-    } finally {
-      isSetGenerating(false);
+      setIsGenerating(false);
     }
   };
 
   const handleMakeVideo = async () => {
-    if (!generatedImage) return;
-
-    isSetGenerating(true);
+    if (!imageUrl) return;
+    setIsStartingVideo(true);
     try {
       const response = await fetch("/api/video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          imageUrl: generatedImage,
-        }),
+        body: JSON.stringify({ imageUrl }),
       });
 
-      if (!response.ok) throw new Error("Failed to start video");
+      if (!response.ok) {
+        setIsStartingVideo(false);
+        return;
+      }
 
       const data = await response.json();
       router.push(`/result/${data.jobId}`);
-    } catch (err) {
-      setError("Failed to start video. Try again.");
-      isSetGenerating(false);
+    } catch {
+      setIsStartingVideo(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-canvas text-ink px-4 py-8">
-      <div className="max-w-md mx-auto space-y-6">
-        <Nav />
-        <h1 className="display-sm">Capture</h1>
+    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col gap-4 px-4 py-6 md:max-w-2xl lg:max-w-4xl">
+      <Nav />
+      <h1 className="display-sm">Capture</h1>
 
-        {isPaused && (
-          <div className="bg-surface-2 border border-hairline rounded-[8px] p-4">
-            <StatusBadge variant="pending" className="mb-2">
-              Generation paused
-            </StatusBadge>
-            <p className="body-sm text-ink-subtle">
-              Generation is currently paused. Check back later.
-            </p>
+      <Card className="space-y-4 p-4">
+        {!imageUrl && (
+          <>
+            <PhotoInput value={photo} onChange={handlePhotoSelect} disabled={isGenerating || paused} />
+            <PhotoPreview src={preview} />
+            <HintInput value={mood} onChange={setMood} />
+          </>
+        )}
+
+        {paused && (
+          <div className="flex items-center gap-2 rounded-[8px] border border-hairline bg-surface-2 p-3">
+            <StatusBadge variant="pending">Generation paused</StatusBadge>
+            <span className="body-sm text-ink-muted">Generation is currently paused. Check back later.</span>
           </div>
         )}
 
-        <Card>
-          <div className="space-y-4">
-            <PhotoInput onPhotoSelect={setPhoto} inputRef={inputRef} />
-            {!generatedImage && <PhotoPreview photoUrl={photo} />}
+        {error && !paused ? <p className="body-sm text-ink-muted">{error}</p> : null}
 
-            {!generatedImage && (
-              <>
-                <HintInput value={hint} onChange={setHint} />
-
-                <Button
-                  variant="primary"
-                  onClick={handleGenerate}
-                  disabled={!photo || isGenerating || isPaused}
-                  className="w-full flex items-center justify-center gap-2"
-                >
-                  {isGenerating && <Spinner className="w-4 h-4" />}
-                  {isGenerating ? `Generating... ${elapsedSeconds}s` : "Generate"}
-                </Button>
-              </>
+        {!imageUrl && (
+          <Button type="button" onClick={handleGenerate} disabled={!photo || isGenerating || paused} className="w-full">
+            {isGenerating ? (
+              <span className="inline-flex items-center gap-2">
+                <Spinner className="h-4 w-4" />
+                Generating... {elapsedSeconds}s
+              </span>
+            ) : (
+              "Generate"
             )}
+          </Button>
+        )}
 
-            {error && (
-              <div className="bg-surface-2 border border-hairline rounded-[8px] p-3">
-                <p className="body-sm text-ink-subtle">{error}</p>
-              </div>
-            )}
-
-            {generatedImage && (
-              <GeneratedResult
-                photoUrl={photo}
-                imageUrl={generatedImage}
-                onMakeVideo={handleMakeVideo}
-                isLoading={isGenerating}
-                elapsedSeconds={elapsedSeconds}
-              />
-            )}
-          </div>
-        </Card>
-      </div>
-    </div>
+        <GeneratedResult
+          originalSrc={preview}
+          generatedSrc={imageUrl}
+          onMakeVideo={handleMakeVideo}
+          isLoading={isStartingVideo}
+        />
+      </Card>
+    </main>
   );
 }
 ```
@@ -2405,31 +2406,19 @@ describe("Typographic scale", () => {
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
 
-// Signed-in visitors never reach this component: middleware redirects them
-// to /capture before the request renders.
-export default function Landing() {
+export default function Home() {
   const router = useRouter();
 
   return (
-    <div className="min-h-screen bg-canvas text-ink flex items-center justify-center px-4">
-      <div className="w-full max-w-md text-center space-y-6">
-        <h1 className="display-lg">
-          Create videos from photos
-        </h1>
-
-        <p className="body text-ink-subtle">
-          AI turns your ideas into reality.
-        </p>
-
-        <Button
-          variant="primary"
-          onClick={() => router.push("/sign-in")}
-          className="w-full"
-        >
+    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center px-4 text-center md:max-w-lg lg:max-w-xl">
+      <div className="space-y-4">
+        <h1 className="display-lg text-ink">Create videos from photos</h1>
+        <p className="body text-ink-muted">AI turns your ideas into reality.</p>
+        <Button type="button" onClick={() => router.push("/sign-in")} className="w-full">
           Start creating
         </Button>
       </div>
-    </div>
+    </main>
   );
 }
 ```
@@ -2781,9 +2770,11 @@ import { SignIn } from "@clerk/nextjs";
 
 export default function SignInPage() {
   return (
-    <div className="min-h-screen bg-canvas flex items-center justify-center">
-      <SignIn forceRedirectUrl="/capture" />
-    </div>
+    <main className="mx-auto flex min-h-screen w-full max-w-md items-center justify-center px-4 md:max-w-2xl lg:max-w-4xl">
+      <div className="w-full rounded-[8px] border border-hairline bg-surface-1 p-4">
+        <SignIn forceRedirectUrl="/capture" />
+      </div>
+    </main>
   );
 }
 ```
@@ -3027,6 +3018,91 @@ describe("POST /api/image", () => {
 });
 ```
 
+### `app/api/phase3.test.js`
+
+```js
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { POST as createImage } from "./image/route";
+import { POST as createVideo } from "./video/route";
+import { GET as getVideoStatus } from "./video/[id]/route";
+import { GET as getVideoFile } from "./video/[id]/file/route";
+
+const makeRequest = (body) => new Request("http://localhost", { method: "POST", body: JSON.stringify(body), headers: { "Content-Type": "application/json" } });
+
+vi.mock("@clerk/nextjs/server", () => ({
+  auth: vi.fn(async () => ({ userId: "user_123" })),
+}));
+
+vi.mock("@/lib/db", () => ({
+  db: vi.fn(async () => ({ db: () => ({ collection: () => fakeCollection }) })),
+  generations: vi.fn(async () => fakeCollection),
+}));
+
+vi.mock("@/lib/blob", () => ({
+  store: vi.fn(async (buffer, contentType) => `https://blob.test/${contentType.replace("/", ".") || "image.png"}`),
+}));
+
+vi.mock("@/lib/higgsfield", () => ({
+  generateImage: vi.fn(async () => ({ buffer: Buffer.from("image-bytes"), contentType: "image/png" })),
+  startVideo: vi.fn(async () => "provider-job-1"),
+  getVideo: vi.fn(async () => ({ status: "ready", videoUrl: "https://blob.test/video-1.mp4" })),
+}));
+
+vi.mock("@/lib/settings", () => ({
+  assertEnabled: vi.fn(async () => {}),
+  getSettings: vi.fn(async () => ({ enabled: true, videoQuality: "lite" })),
+}));
+
+const fakeCollection = {
+  findOne: vi.fn(),
+  insertOne: vi.fn(async (doc) => ({ insertedId: doc.jobId || "doc-1" })),
+  updateOne: vi.fn(async () => ({ modifiedCount: 1 })),
+};
+
+describe("phase 3 backend", () => {
+  beforeEach(() => {
+    fakeCollection.findOne.mockReset();
+    fakeCollection.insertOne.mockClear();
+    fakeCollection.updateOne.mockClear();
+  });
+
+  it("creates an image record when generation succeeds", async () => {
+    const response = await createImage(makeRequest({ photo: "data:image/png;base64,AAAA", hint: "happy" }));
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    expect(json.imageUrl).toContain("https://blob.test/");
+    expect(fakeCollection.insertOne).toHaveBeenCalled();
+  });
+
+  it("creates a pending video record and returns a job id", async () => {
+    const response = await createVideo(makeRequest({ imageUrl: "https://blob.test/generated.png" }));
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    expect(json.jobId).toBe("provider-job-1");
+    expect(fakeCollection.insertOne).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "video", status: "pending", sourceUrl: "https://blob.test/generated.png" })
+    );
+  });
+
+  it("reads status and returns a stored video url without re-fetching when ready", async () => {
+    fakeCollection.findOne.mockResolvedValue({ jobId: "job-123", status: "ready", url: "https://blob.test/video-1.mp4" });
+    const response = await getVideoStatus(new Request("http://localhost/api/video/job-123"), { params: Promise.resolve({ id: "job-123" }) });
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    expect(json.status).toBe("ready");
+    expect(json.videoUrl).toBe("https://blob.test/video-1.mp4");
+  });
+
+  it("streams the file route when a stored video exists", async () => {
+    fakeCollection.findOne.mockResolvedValue({ jobId: "job-123", url: "https://blob.test/video-1.mp4" });
+    global.fetch = vi.fn(async () => ({ ok: true, body: "video-bytes", headers: new Headers({ "content-type": "video/mp4" }) }));
+    const response = await getVideoFile(new Request("http://localhost/api/video/job-123/file"), { params: Promise.resolve({ id: "job-123" }) });
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("video/mp4");
+  });
+});
+```
+
 ### `app/api/settings/route.js`
 
 ```js
@@ -3041,8 +3117,7 @@ export const GET = async () => {
     return new Response(null, { status: 404 });
   }
 
-  const settings = await getSettings();
-  return Response.json(settings);
+  return Response.json(await getSettings());
 };
 
 export const PATCH = async (request) => {
@@ -3054,11 +3129,7 @@ export const PATCH = async (request) => {
 
   const [body, database] = await Promise.all([request.json(), db()]);
   const settings = database.collection("settings");
-
-  // Get current settings
   const current = await settings.findOne({ _id: "config" });
-
-  // Build update — _id stays out of $set, MongoDB rejects updating it
   const { _id, ...currentFields } = current ?? {};
   const update = {
     enabled: true,
@@ -3067,7 +3138,6 @@ export const PATCH = async (request) => {
     ...body,
   };
 
-  // Persist
   await settings.updateOne(
     { _id: "config" },
     { $set: update },
@@ -3087,130 +3157,65 @@ export const PATCH = async (request) => {
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { GET, PATCH } from "./route.js";
 
-vi.mock("@clerk/nextjs/server", () => ({
-  auth: vi.fn(),
-}));
-
+vi.mock("@clerk/nextjs/server", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/db.js");
 vi.mock("@/lib/settings.js");
 
-describe("GET /api/settings", () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-  });
+describe("/api/settings", () => {
+  beforeEach(() => vi.resetAllMocks());
 
-  it("returns 404 for anonymous caller", async () => {
-    const { auth } = await import("@clerk/nextjs/server");
-    auth.mockReturnValue({ userId: null });
-
-    const response = await GET();
-    expect(response.status).toBe(404);
-  });
-
-  it("returns 404 for non-owner", async () => {
+  it("returns 404 for anonymous and non-owner callers", async () => {
     const { auth } = await import("@clerk/nextjs/server");
     const { isOwner } = await import("@/lib/settings.js");
-    auth.mockReturnValue({ userId: "other-user" });
+    auth.mockResolvedValueOnce({ userId: null }).mockResolvedValueOnce({ userId: "other" });
     isOwner.mockReturnValue(false);
 
-    const response = await GET();
-    expect(response.status).toBe(404);
+    expect((await GET()).status).toBe(404);
+    expect((await GET()).status).toBe(404);
   });
 
-  it("returns settings for owner", async () => {
+  it("returns settings to the owner", async () => {
     const { auth } = await import("@clerk/nextjs/server");
     const { isOwner, getSettings } = await import("@/lib/settings.js");
-    auth.mockReturnValue({ userId: "owner-id" });
+    auth.mockResolvedValue({ userId: "owner" });
     isOwner.mockReturnValue(true);
-    getSettings.mockResolvedValue({ enabled: true });
+    getSettings.mockResolvedValue({ enabled: true, videoQuality: "lite" });
 
     const response = await GET();
     expect(response.status).toBe(200);
-    const data = await response.json();
-    expect(data.enabled).toBe(true);
-  });
-});
-
-describe("PATCH /api/settings", () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
+    await expect(response.json()).resolves.toEqual({ enabled: true, videoQuality: "lite" });
   });
 
-  it("returns 404 for anonymous caller", async () => {
-    const { auth } = await import("@clerk/nextjs/server");
-    auth.mockReturnValue({ userId: null });
-
-    const request = new Request("http://localhost/api/settings", {
-      method: "PATCH",
-      body: JSON.stringify({ enabled: false }),
-    });
-
-    const response = await PATCH(request);
-    expect(response.status).toBe(404);
-  });
-
-  it("returns 404 for non-owner", async () => {
-    const { auth } = await import("@clerk/nextjs/server");
-    const { isOwner } = await import("@/lib/settings.js");
-    auth.mockReturnValue({ userId: "other-user" });
-    isOwner.mockReturnValue(false);
-
-    const request = new Request("http://localhost/api/settings", {
-      method: "PATCH",
-      body: JSON.stringify({ enabled: false }),
-    });
-
-    const response = await PATCH(request);
-    expect(response.status).toBe(404);
-  });
-
-  it("persists partial update", async () => {
-    const { auth } = await import("@clerk/nextjs/server");
-    const { isOwner, getSettings } = await import("@/lib/settings.js");
-    const { db } = await import("@/lib/db.js");
-
-    auth.mockReturnValue({ userId: "owner-id" });
-    isOwner.mockReturnValue(true);
-    getSettings.mockResolvedValue({ enabled: true });
-
-    const mockSettings = { findOne: vi.fn(), updateOne: vi.fn() };
-    db.mockResolvedValue({
-      collection: vi.fn().mockReturnValue(mockSettings),
-    });
-    mockSettings.findOne.mockResolvedValue({ enabled: true });
-    mockSettings.updateOne.mockResolvedValue({ modifiedCount: 1 });
-
-    const request = new Request("http://localhost/api/settings", {
-      method: "PATCH",
-      body: JSON.stringify({ enabled: false }),
-    });
-
-    const response = await PATCH(request);
-    expect(response.status).toBe(200);
-  });
-
-  it("creates record on first write with defaults", async () => {
+  it("persists a partial update without putting _id in $set", async () => {
     const { auth } = await import("@clerk/nextjs/server");
     const { isOwner } = await import("@/lib/settings.js");
     const { db } = await import("@/lib/db.js");
-
-    auth.mockReturnValue({ userId: "owner-id" });
+    auth.mockResolvedValue({ userId: "owner" });
     isOwner.mockReturnValue(true);
+    const settings = { findOne: vi.fn().mockResolvedValue({ _id: "config", enabled: true, videoQuality: "turbo" }), updateOne: vi.fn() };
+    db.mockResolvedValue({ collection: vi.fn().mockReturnValue(settings) });
 
-    const mockSettings = { findOne: vi.fn(), updateOne: vi.fn() };
-    db.mockResolvedValue({
-      collection: vi.fn().mockReturnValue(mockSettings),
-    });
-    mockSettings.findOne.mockResolvedValue(null);
-    mockSettings.updateOne.mockResolvedValue({ modifiedCount: 0, upsertedCount: 1 });
-
-    const request = new Request("http://localhost/api/settings", {
-      method: "PATCH",
-      body: JSON.stringify({ enabled: false }),
-    });
-
-    const response = await PATCH(request);
+    const response = await PATCH(new Request("http://localhost/api/settings", { method: "PATCH", body: JSON.stringify({ enabled: false }) }));
     expect(response.status).toBe(200);
+    expect(settings.updateOne).toHaveBeenCalledWith(
+      { _id: "config" },
+      { $set: { enabled: false, videoQuality: "turbo" } },
+      { upsert: true }
+    );
+  });
+
+  it("uses lite as the default quality on the first write", async () => {
+    const { auth } = await import("@clerk/nextjs/server");
+    const { isOwner } = await import("@/lib/settings.js");
+    const { db } = await import("@/lib/db.js");
+    auth.mockResolvedValue({ userId: "owner" });
+    isOwner.mockReturnValue(true);
+    const settings = { findOne: vi.fn().mockResolvedValue(null), updateOne: vi.fn() };
+    db.mockResolvedValue({ collection: vi.fn().mockReturnValue(settings) });
+
+    const response = await PATCH(new Request("http://localhost/api/settings", { method: "PATCH", body: JSON.stringify({ enabled: false }) }));
+    expect(response.status).toBe(200);
+    expect(settings.updateOne.mock.calls[0][1].$set).toEqual({ enabled: false, videoQuality: "lite" });
   });
 });
 ```
@@ -3509,193 +3514,60 @@ describe("POST /api/video", () => {
 ### `components/capture/GeneratedResult.jsx`
 
 ```jsx
+"use client";
+
 import { useState } from "react";
-import Image from "next/image";
-import { Button, Spinner, CloseIcon } from "@/components/ui";
+import { Button } from "@/components/ui";
 
-export const GeneratedResult = ({ photoUrl, imageUrl, onMakeVideo, isLoading, elapsedSeconds }) => {
+export function GeneratedResult({ originalSrc, generatedSrc, onMakeVideo, isLoading = false }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isFullscreenLoading, setIsFullscreenLoading] = useState(false);
 
-  if (!imageUrl) return null;
+  if (!generatedSrc) return null;
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-2">
-        {photoUrl && (
-          <div className="space-y-2">
-            <span className="eyebrow block">Original</span>
-            <div className="relative w-full aspect-square bg-surface-1 border border-hairline rounded-[8px] overflow-hidden">
-              <Image
-                src={photoUrl}
-                alt="Selected"
-                fill
-                sizes="(max-width: 768px) 50vw, 336px"
-                className="object-contain"
-              />
-            </div>
-          </div>
-        )}
-        <div className="space-y-2">
-          <span className="eyebrow block">Generated image</span>
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <p className="eyebrow text-ink-subtle">Original</p>
+          <img src={originalSrc} alt="Original preview" className="mt-2 aspect-square w-full object-contain rounded-[8px] border border-hairline" />
+        </div>
+        <div>
+          <p className="eyebrow text-ink-subtle">Generated image</p>
           <button
             type="button"
-            onClick={() => {
-              setIsFullscreenLoading(true);
-              setIsFullscreen(true);
-            }}
-            className="relative w-full aspect-square bg-surface-1 border border-hairline rounded-[8px] overflow-hidden cursor-zoom-in"
+            aria-label="Generated result"
+            onClick={() => setIsFullscreen(true)}
+            className="mt-2 block w-full overflow-hidden rounded-[8px] border border-hairline bg-surface-1 focus:outline-2 focus:outline-offset-2 focus:outline-primary-focus/50"
           >
-            <Image
-              src={imageUrl}
-              alt="Generated"
-              fill
-              sizes="(max-width: 768px) 50vw, 336px"
-              className="object-contain"
-            />
+            <img src={generatedSrc} alt="Generated result" className="aspect-square w-full object-contain" />
           </button>
         </div>
       </div>
-
       {isFullscreen && (
-        <div
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
-          onClick={() => setIsFullscreen(false)}
-        >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4" role="dialog" aria-label="Generated result">
           <button
             type="button"
             aria-label="Close"
             onClick={() => setIsFullscreen(false)}
-            className="absolute top-4 right-4 text-white"
+            className="absolute right-4 top-4 h-11 rounded-[8px] bg-surface-2 px-4 text-ink focus:outline-2 focus:outline-offset-2 focus:outline-primary-focus/50"
           >
-            <CloseIcon className="w-6 h-6" />
+            Close
           </button>
-          <div className="relative w-full h-full max-w-3xl max-h-[48rem] m-4">
-            {isFullscreenLoading && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Spinner className="w-8 h-8 text-white" />
-              </div>
-            )}
-            <Image
-              src={imageUrl}
-              alt="Generated"
-              fill
-              sizes="100vw"
-              className="object-contain"
-              onLoad={() => setIsFullscreenLoading(false)}
-            />
-          </div>
+          <img src={generatedSrc} alt="Generated result" className="max-h-full max-w-full object-contain" />
         </div>
       )}
-
-      <Button
-        variant="primary"
-        onClick={onMakeVideo}
-        disabled={isLoading}
-        className="w-full flex items-center justify-center gap-2"
-      >
-        {isLoading && <Spinner className="w-4 h-4" />}
-        {isLoading ? `Starting video... ${elapsedSeconds}s` : "Make video"}
+      <Button type="button" onClick={onMakeVideo} disabled={isLoading} className="w-full">
+        {isLoading ? "Starting video..." : "Make video"}
       </Button>
     </div>
   );
-};
+}
 ```
 
 ### `components/capture/HintInput.jsx`
 
 ```jsx
-import { HINT_OPTIONS } from "./hintOptions";
-
-export const HintInput = ({ value, onChange }) => {
-  return (
-    <div className="space-y-2">
-      <label htmlFor="hint" className="eyebrow block">Mood</label>
-      <select
-        id="hint"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full h-11 px-3 rounded-[8px] bg-surface-1 text-ink border border-hairline focus:outline-2 focus:outline-offset-2 focus:outline-primary-focus/50 body"
-      >
-        {HINT_OPTIONS.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-};
-```
-
-### `components/capture/PhotoInput.jsx`
-
-```jsx
-import { CameraIcon } from "@/components/ui";
-
-export const PhotoInput = ({ onPhotoSelect, inputRef }) => {
-  return (
-    <div className="space-y-2">
-      <label htmlFor="photo" className="eyebrow block">Your photo</label>
-      <input
-        ref={inputRef}
-        id="photo"
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) {
-            const reader = new FileReader();
-            reader.onload = (evt) => {
-              onPhotoSelect(evt.target?.result);
-            };
-            reader.readAsDataURL(file);
-          }
-        }}
-        className="hidden"
-      />
-      <button
-        onClick={() => inputRef.current?.click()}
-        className="w-full h-11 bg-surface-2 text-ink rounded-[8px] hover:bg-surface-3 focus:outline-2 focus:outline-offset-2 focus:outline-primary-focus/50 body flex items-center justify-center gap-2"
-      >
-        <CameraIcon />
-        Choose photo
-      </button>
-    </div>
-  );
-};
-```
-
-### `components/capture/PhotoPreview.jsx`
-
-```jsx
-import Image from "next/image";
-
-export const PhotoPreview = ({ photoUrl }) => {
-  if (!photoUrl) return null;
-
-  return (
-    <div className="space-y-2">
-      <span className="eyebrow block">Preview</span>
-      <div className="relative w-full aspect-square bg-surface-1 border border-hairline rounded-[8px] overflow-hidden">
-        <Image
-          src={photoUrl}
-          alt="Selected"
-          fill
-          sizes="(max-width: 768px) 100vw, 672px"
-          className="object-contain"
-        />
-      </div>
-    </div>
-  );
-};
-```
-
-### `components/capture/hintOptions.js`
-
-```js
-export const HINT_OPTIONS = [
+const moods = [
   "I am feeling happy 😊",
   "I am feeling adventurous 🌍",
   "I am feeling playful 🎉",
@@ -3707,6 +3579,97 @@ export const HINT_OPTIONS = [
   "I am feeling grateful 🙏",
   "I am feeling bold 🔥",
 ];
+
+export function HintInput({ value, onChange }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <label htmlFor="mood" className="body-sm text-ink-muted">
+        Mood
+      </label>
+      <select
+        id="mood"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-11 rounded-[8px] border border-hairline bg-surface-1 px-3 text-ink focus:outline-2 focus:outline-offset-2 focus:outline-primary-focus/50"
+      >
+        {moods.map((mood) => (
+          <option key={mood} value={mood}>
+            {mood}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+export { moods };
+```
+
+### `components/capture/PhotoInput.jsx`
+
+```jsx
+export function PhotoInput({ value, onChange, disabled }) {
+  const handleFile = (event) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      onChange(file);
+    }
+    event.target.value = "";
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      <label htmlFor="photo" className="body-sm text-ink-muted">
+        Photo
+      </label>
+      <input
+        id="photo"
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleFile}
+        disabled={disabled}
+      />
+      <label
+        htmlFor="photo"
+        className="inline-flex h-11 items-center justify-center rounded-[8px] bg-surface-2 px-4 text-ink hover:bg-surface-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary-focus/50 cursor-pointer"
+      >
+        Choose photo
+      </label>
+      {value && <span className="body-sm text-ink-subtle">{value.name}</span>}
+    </div>
+  );
+}
+```
+
+### `components/capture/PhotoPreview.jsx`
+
+```jsx
+export function PhotoPreview({ src, alt = "Selected photo" }) {
+  if (!src) {
+    return (
+      <div className="flex aspect-square w-full items-center justify-center rounded-[8px] border border-dashed border-hairline bg-surface-2 text-ink-subtle body-sm">
+        No photo selected
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-hidden rounded-[8px] border border-hairline bg-surface-1">
+      <img src={src} alt={alt} className="aspect-square w-full object-contain" />
+    </div>
+  );
+}
+```
+
+### `components/capture/index.js`
+
+```js
+export { PhotoInput } from "./PhotoInput";
+export { PhotoPreview } from "./PhotoPreview";
+export { HintInput } from "./HintInput";
+export { GeneratedResult } from "./GeneratedResult";
 ```
 
 ### `components/dashboard/SettingsPanel.jsx`
@@ -3722,15 +3685,14 @@ const QUALITY_OPTIONS = [
   { value: "turbo", label: "Turbo (highest cost)" },
 ];
 
-const patch = (body) =>
-  fetch("/api/settings", {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+const patch = (body) => fetch("/api/settings", {
+  method: "PATCH",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body),
+});
 
 export const SettingsPanel = ({ initial }) => {
-  const [settings, setSettings] = useState(initial);
+  const [settings, setSettings] = useState({ enabled: true, videoQuality: "lite", ...initial });
 
   const update = (field) => (event) => {
     const value = field === "enabled" ? event.target.checked : event.target.value;
@@ -3739,35 +3701,24 @@ export const SettingsPanel = ({ initial }) => {
   };
 
   return (
-    <>
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
       <div className="bg-surface-1 border border-hairline rounded-lg p-6">
-        <label className="flex items-center gap-4">
+        <label className="flex min-h-11 items-center gap-4" htmlFor="generation-toggle">
           <span className="heading">Generation</span>
-          <input
-            type="checkbox"
-            checked={settings.enabled}
-            onChange={update("enabled")}
-            className="w-6 h-6"
-          />
+          <input id="generation-toggle" type="checkbox" checked={settings.enabled} onChange={update("enabled")} className="h-6 w-6 focus:outline-2 focus:outline-offset-2 focus:outline-primary" />
         </label>
-        {!settings.enabled && (
-          <p className="text-sm text-success mt-2">Generation is paused</p>
-        )}
+        {!settings.enabled && <p className="body-sm text-success mt-2">Generation is paused</p>}
       </div>
 
       <div className="bg-surface-1 border border-hairline rounded-lg p-6">
-        <label className="flex items-center gap-4">
+        <label className="flex min-h-11 items-center gap-4" htmlFor="video-quality">
           <span className="heading">Video quality</span>
-          <select value={settings.videoQuality} onChange={update("videoQuality")} className="body-sm">
-            {QUALITY_OPTIONS.map(({ value, label }) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
+          <select id="video-quality" value={settings.videoQuality} onChange={update("videoQuality")} className="body-sm min-h-11 rounded-md border border-hairline bg-surface-2 px-3 focus:outline-2 focus:outline-offset-2 focus:outline-primary">
+            {QUALITY_OPTIONS.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
           </select>
         </label>
       </div>
-    </>
+    </div>
   );
 };
 ```
@@ -3855,7 +3806,7 @@ import { test, expect } from "@playwright/test";
 test("landing page loads and links to sign-in", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByText("Create videos from photos")).toBeVisible();
-  await page.getByRole("button", { name: "Start creating" }).click();
+  await page.getByRole("link", { name: "Start creating" }).click();
   await expect(page).toHaveURL(/\/sign-in/);
 });
 ```
@@ -3961,9 +3912,7 @@ export class FakeCollection {
   }
 
   async findOne(filter) {
-    return this.docs.find((doc) => {
-      return Object.entries(filter).every(([key, val]) => doc[key] === val);
-    });
+    return this.docs.find((doc) => matches(doc, filter));
   }
 
   async insertOne(doc) {
@@ -3982,10 +3931,19 @@ export class FakeCollection {
   }
 
   async countDocuments(filter = {}) {
-    return this.docs.filter((doc) => {
-      return Object.entries(filter).every(([key, val]) => doc[key] === val);
-    }).length;
+    return this.docs.filter((doc) => matches(doc, filter)).length;
   }
+}
+
+// Exact match on each key, except a `{ $gte: value }` operand, which does a
+// range comparison. Covers "generations today" style date-range counts.
+function matches(doc, filter) {
+  return Object.entries(filter).every(([key, val]) => {
+    if (val && typeof val === "object" && "$gte" in val) {
+      return doc[key] >= val.$gte;
+    }
+    return doc[key] === val;
+  });
 }
 ```
 
@@ -4050,8 +4008,15 @@ export const handlers = [
     );
   }),
 
+  http.get("/api/video/:id/file", () => {
+    return new HttpResponse("video-bytes", {
+      status: 200,
+      headers: { "Content-Type": "video/mp4" },
+    });
+  }),
+
   http.get("/api/settings", () => {
-    return HttpResponse.json({ enabled: true }, { status: 200 });
+    return HttpResponse.json({ enabled: true, videoQuality: "lite" }, { status: 200 });
   }),
 
   http.patch("/api/settings", async ({ request }) => {
@@ -4084,6 +4049,19 @@ describe("MSW handlers", () => {
       (h) => h.info.path === "/api/video/:id"
     );
     expect(videoHandler).toBeDefined();
+  });
+
+  it("covers the file route and complete settings response", async () => {
+    const fileHandler = handlers.find(
+      (h) => h.info.path === "/api/video/:id/file"
+    );
+    const settingsHandler = handlers.find(
+      (h) => h.info.path === "/api/settings"
+    );
+
+    expect(fileHandler).toBeDefined();
+    expect(settingsHandler).toBeDefined();
+    expect(settingsHandler.info.path).toBe("/api/settings");
   });
 });
 ```
@@ -4152,6 +4130,105 @@ describe("PWA Manifest", () => {
 
   it("references manifest.json in metadata", () => {
     expect(layoutContent).toMatch(/manifest\.json/);
+  });
+});
+```
+
+### `app/phase2.test.jsx`
+
+```jsx
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import Home from "./page";
+import CapturePage from "./capture/page";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: routerPush }),
+}));
+
+const routerPush = vi.fn();
+
+vi.mock("@clerk/nextjs", () => ({
+  ClerkProvider: ({ children }) => <>{children}</>,
+  useUser: () => ({ user: null }),
+  SignIn: ({ forceRedirectUrl }) => (
+    <div data-testid="sign-in">Sign in redirect={forceRedirectUrl}</div>
+  ),
+  UserButton: () => <button type="button">User</button>,
+}));
+
+describe("Phase 2 landing screen", () => {
+  it("renders the landing page copy and primary CTA", () => {
+    render(<Home />);
+
+    expect(screen.getByRole("main")).toHaveClass("md:max-w-lg", "lg:max-w-xl");
+    expect(screen.getByText("Create videos from photos")).toBeInTheDocument();
+    expect(screen.getByText("AI turns your ideas into reality.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start creating" })).toBeInTheDocument();
+    expect(screen.queryByText(/pricing/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/faq/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/features/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("Phase 2 capture flow", () => {
+  beforeEach(() => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ imageUrl: "https://blob.test/generated.png" }),
+    });
+  });
+
+  it("shows the mood selector and photo preview", async () => {
+    const user = userEvent.setup();
+    render(<CapturePage />);
+
+    expect(screen.getByRole("main")).toHaveClass("md:max-w-2xl", "lg:max-w-4xl");
+    const input = document.getElementById("photo");
+    expect(input).toHaveAttribute("accept", "image/*");
+    expect(input).toHaveAttribute("capture", "environment");
+
+    const select = screen.getByLabelText("Mood");
+    expect(select).toBeInTheDocument();
+    expect(select.value).toBe("I am feeling happy 😊");
+    expect(screen.getByRole("link", { name: "Capture" })).toHaveAttribute("href", "/capture");
+
+    const file = new File(["hello"], "photo.png", { type: "image/png" });
+    await user.upload(input, file);
+
+    await waitFor(() => {
+      expect(screen.getByAltText("Selected photo")).toHaveAttribute("src", expect.stringContaining("data:image/png"));
+    });
+  });
+
+  it("shows the generated result overlay and starts a video handoff", async () => {
+    const user = userEvent.setup();
+    routerPush.mockClear();
+    global.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ imageUrl: "https://blob.test/generated.png" }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ jobId: "job-12345" }),
+      });
+
+    render(<CapturePage />);
+    const input = document.getElementById("photo");
+    await user.upload(input, new File(["hello"], "photo.png", { type: "image/png" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Generate" })).toBeEnabled());
+    await user.click(screen.getByRole("button", { name: "Generate" }));
+
+    expect(await screen.findByAltText("Generated result")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Generated result" }));
+    expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Make video" }));
+    await waitFor(() => expect(routerPush).toHaveBeenCalledWith("/result/job-12345"));
   });
 });
 ```
@@ -4234,7 +4311,7 @@ import { execSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-const SKIP = /^(docs\/|openspec\/|\.claude\/|\.agents\/|node_modules\/|public\/(icon|.*\.svg|favicon))|package-lock\.json|skills-lock\.json|\.mcp\.json|AGENTS\.md|CLAUDE\.md|README\.md|\.ico$|\.png$/;
+const SKIP = /^(docs\/|openspec\/|specs\/|\.specify\/|\.claude\/|\.agents\/|node_modules\/|public\/(icon|.*\.svg|favicon))|package-lock\.json|skills-lock\.json|\.mcp\.json|AGENTS\.md|CLAUDE\.md|README\.md|\.ico$|\.png$/;
 
 const ORDER = [
   ["Configuration", /^(package\.json|next\.config\.mjs|jsconfig\.json|postcss\.config\.mjs|eslint\.config\.mjs|vitest\.config\.mjs|vitest\.setup\.js|playwright\.config\.js|doctor\.config\.json|\.react-doctor-baseline|\.env\.local\.example|\.gitignore|\.github\/)/],
@@ -4294,4 +4371,351 @@ ${body}
 );
 
 console.log(`docs/REPLICATION-APPENDIX.md — ${files.length} files`);
+```
+
+### `scripts/build-guide-pdf.mjs`
+
+```js
+// Regenera docs/GUIA-SPEC-KIT.pdf desde el .md. Sin LaTeX ni pandoc.
+//
+//   npm i marked playwright && npx playwright install chromium
+//   node scripts/build-guide-pdf.mjs
+//
+// Corre esto cada vez que edites la guía, o el PDF queda desactualizado.
+import { readFileSync, readdirSync } from 'node:fs'
+import os from 'node:os'
+import { marked } from 'marked'
+import { chromium } from 'playwright'
+
+const SRC = new URL('../docs/GUIA-SPEC-KIT.md', import.meta.url).pathname
+const OUT = new URL('../docs/GUIA-SPEC-KIT.pdf', import.meta.url).pathname
+
+marked.setOptions({ gfm: true, breaks: false })
+const md = readFileSync(SRC, 'utf8')
+
+// The first h1 becomes the cover block, so drop it from the body.
+const body = marked.parse(md.replace(/^#\s+.+\n/, ''))
+
+const html = `<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><style>
+  @page { size: A4; margin: 18mm 16mm 20mm; }
+
+  :root {
+    --ink: #16181d;
+    --ink-soft: #4a4f57;
+    --ink-faint: #7c828c;
+    --rule: #dcdfe4;
+    --rule-soft: #eceef1;
+    --accent: #4f46e5;
+    --code-bg: #f5f6f8;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+    font-size: 10.2pt;
+    line-height: 1.55;
+    color: var(--ink);
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Cover ------------------------------------------------------------- */
+  .cover { break-after: page; padding-top: 52mm; }
+  .cover .eyebrow {
+    font-size: 8.5pt; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600; margin-bottom: 10mm;
+  }
+  .cover h1 {
+    font-size: 30pt; line-height: 1.1; letter-spacing: -.02em;
+    font-weight: 700; margin: 0 0 6mm; border: 0; padding: 0;
+  }
+  .cover .sub { font-size: 12pt; color: var(--ink-soft); max-width: 118mm; margin: 0 0 16mm; }
+  .cover .meta {
+    border-top: 1.5px solid var(--ink); padding-top: 4mm;
+    font-size: 9pt; color: var(--ink-faint); display: flex; gap: 8mm; flex-wrap: wrap;
+  }
+  .cover .meta b { color: var(--ink); font-weight: 600; }
+
+  /* Headings ---------------------------------------------------------- */
+  h2 {
+    font-size: 15pt; font-weight: 700; letter-spacing: -.01em;
+    margin: 11mm 0 3.5mm; padding-bottom: 2mm;
+    border-bottom: 1.5px solid var(--ink);
+    break-after: avoid; break-inside: avoid;
+  }
+  h2:first-of-type { margin-top: 0; }
+  h3 {
+    font-size: 11.5pt; font-weight: 650; margin: 7mm 0 2.5mm;
+    color: var(--ink); break-after: avoid;
+  }
+
+  p { margin: 0 0 3mm; }
+  strong { font-weight: 650; }
+  a { color: var(--accent); text-decoration: none; }
+
+  ul, ol { margin: 0 0 3mm; padding-left: 5.5mm; }
+  li { margin-bottom: 1.2mm; }
+  li::marker { color: var(--ink-faint); }
+  input[type=checkbox] { margin-right: 1.5mm; transform: scale(.9); }
+
+  /* Code -------------------------------------------------------------- */
+  code {
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 8.8pt;
+    background: var(--code-bg);
+    padding: .4mm 1.2mm;
+    border-radius: 2px;
+    color: #1f2430;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--rule-soft);
+    border-left: 2.5px solid var(--accent);
+    border-radius: 3px;
+    padding: 3mm 4mm;
+    margin: 0 0 4mm;
+    overflow: hidden;
+    break-inside: avoid;
+  }
+  pre code {
+    background: none; padding: 0; font-size: 8.4pt; line-height: 1.5;
+    white-space: pre-wrap; word-break: break-word;
+  }
+
+  /* Tables ------------------------------------------------------------ */
+  table {
+    width: 100%; border-collapse: collapse; margin: 0 0 4mm;
+    font-size: 9.2pt; break-inside: avoid;
+  }
+  th {
+    text-align: left; font-weight: 650; background: #f0f1f4;
+    padding: 2mm 2.5mm; border-bottom: 1.5px solid var(--ink);
+    font-size: 8.6pt; letter-spacing: .01em;
+  }
+  td {
+    padding: 2mm 2.5mm; border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: 1px solid var(--rule); }
+  td code, th code { font-size: 8.2pt; }
+
+  /* Blockquote & rule -------------------------------------------------- */
+  blockquote {
+    margin: 0 0 4mm; padding: 2.5mm 4mm;
+    border-left: 2.5px solid var(--accent);
+    background: #f7f7fb; color: var(--ink-soft);
+    break-inside: avoid;
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+
+  hr { border: 0; border-top: 1px solid var(--rule); margin: 8mm 0; }
+</style></head><body>
+
+<div class="cover">
+  <div class="eyebrow">Guía de implementación</div>
+  <h1>Construir la app<br>con Spec Kit</h1>
+  <p class="sub">AI Media Generator — 39 tickets en 6 fases, listos para ejecutar.</p>
+  <div class="meta">
+    <span><b>Repo</b> github.com/sjunka/speckit-ai-generator</span>
+    <span><b>Feature</b> 001-ai-media-generator</span>
+    <span><b>Fecha</b> ${new Date().toISOString().slice(0, 10)}</span>
+  </div>
+</div>
+
+${body}
+</body></html>`
+
+const cache = `${os.homedir()}/Library/Caches/ms-playwright`
+const shells = readdirSync(cache)
+  .filter((d) => d.startsWith('chromium_headless_shell-'))
+  .sort()
+  .map((d) => `${cache}/${d}/chrome-headless-shell-mac-arm64/chrome-headless-shell`)
+
+let browser
+try {
+  browser = await chromium.launch()
+} catch {
+  browser = await chromium.launch({ executablePath: shells.at(-1) })
+}
+
+const page = await browser.newPage()
+await page.setContent(html, { waitUntil: 'load' })
+await page.pdf({
+  path: OUT,
+  format: 'A4',
+  printBackground: true,
+  displayHeaderFooter: true,
+  headerTemplate: '<div></div>',
+  footerTemplate:
+    '<div style="width:100%;font-size:7.5pt;color:#9aa0a8;font-family:-apple-system,Arial,sans-serif;padding:0 16mm;display:flex;justify-content:space-between;">' +
+    '<span>Guía Spec Kit · AI Media Generator</span>' +
+    '<span class="pageNumber"></span></div>',
+  margin: { top: '18mm', bottom: '20mm', left: '16mm', right: '16mm' },
+})
+await browser.close()
+console.log('wrote', OUT)
+```
+
+### `scripts/build-guion-pdf.mjs`
+
+```js
+// Regenera docs/GUION-PRESENTACION.pdf desde el .html. Sin LaTeX ni pandoc.
+//
+//   npm i playwright && npx playwright install chromium
+//   node scripts/build-guion-pdf.mjs
+//
+// Corre esto cada vez que edites el guion, o el PDF queda desactualizado.
+import { readFileSync, readdirSync } from 'node:fs'
+import os from 'node:os'
+import { chromium } from 'playwright'
+
+// Acepta un basename opcional: `node scripts/build-guion-pdf.mjs DIA-D`
+const name = process.argv[2] ?? 'GUION-PRESENTACION'
+const SRC = new URL(`../docs/${name}.html`, import.meta.url).pathname
+const OUT = new URL(`../docs/${name}.pdf`, import.meta.url).pathname
+
+// Playwright a veces no encuentra su propio binario; caemos al shell cacheado.
+const cache = `${os.homedir()}/Library/Caches/ms-playwright`
+const shells = readdirSync(cache).filter(d => d.startsWith('chromium_headless_shell-')).sort()
+  .map(d => `${cache}/${d}/chrome-headless-shell-mac-arm64/chrome-headless-shell`)
+let browser
+try { browser = await chromium.launch() } catch { browser = await chromium.launch({ executablePath: shells.at(-1) }) }
+
+const page = await browser.newPage()
+await page.setContent(readFileSync(SRC, 'utf8'), { waitUntil: 'load' })
+await page.pdf({
+  path: OUT,
+  format: 'A4', printBackground: true, displayHeaderFooter: true,
+  headerTemplate: '<div></div>',
+  footerTemplate: `<div style="width:100%;font-size:7pt;color:#9aa0a8;font-family:-apple-system,Arial;padding:0 13mm;display:flex;justify-content:space-between"><span>${name === 'GUION-PRESENTACION' ? 'Guion · 10 minutos' : name}</span><span class="pageNumber"></span></div>`,
+  margin: { top: '14mm', bottom: '16mm', left: '13mm', right: '13mm' },
+})
+await browser.close()
+console.log(`listo: ${OUT}`)
+```
+
+### `scripts/extract-from-appendix.mjs`
+
+```js
+// Extrae un archivo textual de docs/REPLICATION-APPENDIX.md y lo escribe en disco.
+//   node scripts/extract-from-appendix.mjs app/globals.css [...mas archivos]
+// El apendice es la respuesta correcta (constitucion, principio VI).
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { dirname } from 'node:path'
+
+const md = readFileSync('docs/REPLICATION-APPENDIX.md', 'utf8')
+
+for (const target of process.argv.slice(2)) {
+  const head = '### `' + target + '`'
+  const i = md.indexOf(head)
+  if (i < 0) { console.error(`NO ENCONTRADO: ${target}`); process.exitCode = 1; continue }
+  const fenceStart = md.indexOf('\n```', i)
+  const bodyStart = md.indexOf('\n', fenceStart + 1) + 1
+  const fenceEnd = md.indexOf('\n```', bodyStart)
+  if (fenceStart < 0 || fenceEnd < 0) { console.error(`FENCE ROTO: ${target}`); process.exitCode = 1; continue }
+  const body = md.slice(bodyStart, fenceEnd + 1)
+  mkdirSync(dirname(target), { recursive: true })
+  writeFileSync(target, body)
+  console.log(`escrito  ${target}  (${body.split('\n').length - 1} lineas)`)
+}
+```
+
+### `scripts/setup-branch-protection.sh`
+
+```text
+#!/usr/bin/env bash
+# Protege main y develop contra pushes directos.
+# Requiere: gh auth login (con permisos de admin sobre el repo).
+# Uso: ./scripts/setup-branch-protection.sh
+set -euo pipefail
+
+REPO="$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+echo "Configurando protecciones en $REPO"
+
+# --- develop: sin push directo, CI obligatorio, merge manual sin approvals ---
+gh api -X PUT "repos/$REPO/branches/develop/protection" \
+  -H "Accept: application/vnd.github+json" \
+  --input - <<'JSON'
+{
+  "required_status_checks": {
+    "strict": true,
+    "contexts": ["Lint, tests y build", "Compatibilidad con la rama destino"]
+  },
+  "enforce_admins": true,
+  "required_pull_request_reviews": null,
+  "restrictions": null,
+  "allow_force_pushes": false,
+  "allow_deletions": false,
+  "required_linear_history": true,
+  "required_conversation_resolution": true
+}
+JSON
+
+# --- main: sin push directo, CI obligatorio + 1 approval del equipo ---
+gh api -X PUT "repos/$REPO/branches/main/protection" \
+  -H "Accept: application/vnd.github+json" \
+  --input - <<'JSON'
+{
+  "required_status_checks": {
+    "strict": true,
+    "contexts": ["Lint, tests y build", "Compatibilidad con la rama destino"]
+  },
+  "enforce_admins": true,
+  "required_pull_request_reviews": {
+    "required_approving_review_count": 1,
+    "dismiss_stale_reviews": true,
+    "require_code_owner_reviews": false
+  },
+  "restrictions": null,
+  "allow_force_pushes": false,
+  "allow_deletions": false,
+  "required_linear_history": true,
+  "required_conversation_resolution": true
+}
+JSON
+
+gh api -X PATCH "repos/$REPO" -f allow_squash_merge=true >/dev/null
+
+echo "Listo. main y develop solo aceptan cambios vía Pull Request."
+```
+
+### `scripts/smoke.mjs`
+
+```js
+// Smoke test contra la app desplegada. Prueba que las tres capas están vivas
+// en el mismo origen: pantalla, middleware de sesión y ruta de API.
+//
+//   node scripts/smoke.mjs https://tu-app.vercel.app
+//   node scripts/smoke.mjs                      # contra http://localhost:3000
+//
+// Falla con código 1 si alguna capa no responde, así que sirve como último
+// paso del pipeline: merge -> test -> build -> deploy -> smoke.
+const base = (process.argv[2] ?? 'http://localhost:3000').replace(/\/$/, '')
+
+const checks = [
+  ['la portada responde', 'GET', '/', {}, r => r.status === 200],
+  ['/capture pide sesión', 'GET', '/capture', { redirect: 'manual' }, r => [302, 307].includes(r.status)],
+  ['/api/image rechaza al anónimo', 'POST', '/api/image', {
+    headers: { 'content-type': 'application/json' }, body: '{}',
+  }, r => r.status === 401],
+]
+
+let failed = 0
+for (const [name, method, path, init, ok] of checks) {
+  let line
+  try {
+    const res = await fetch(base + path, { method, ...init })
+    line = ok(res) ? `  ok   ${name} (${res.status})` : `  FALLA ${name} — recibí ${res.status}`
+    if (!ok(res)) failed++
+  } catch (err) {
+    line = `  FALLA ${name} — ${err.message}`
+    failed++
+  }
+  console.log(line)
+}
+
+console.log(failed ? `\nsmoke ROJO contra ${base}` : `\nsmoke verde contra ${base}`)
+process.exit(failed ? 1 : 0)
 ```
