@@ -5,6 +5,8 @@ const isProtectedRoute = createRouteMatcher([
   "/capture(.*)",
   "/result(.*)",
   "/dashboard(.*)",
+  "/gallery(.*)",
+  // "/wall" is deliberately absent: the wall is public, like the landing route.
 ]);
 
 export const proxy = clerkMiddleware(async (authContext, request) => {
