@@ -42,7 +42,7 @@ describe("GalleryList", () => {
     expect(requests).toHaveLength(1);
     expect(requests[0]).toContain("/api/gallery?page=1");
     // The seeded items are still there: the page appends, it does not replace.
-    expect(screen.getByRole("img", { name: /generation/i })).toBeInTheDocument();
+    expect(screen.getAllByRole("img").some((img) => img.getAttribute("src") === ITEM_IMAGE.url)).toBe(true);
   });
 
   it("hides the control once the last page has arrived", async () => {
