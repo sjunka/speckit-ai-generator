@@ -1,6 +1,11 @@
 import { listPublic } from "@/lib/generations.js";
 import { WallList } from "@/components/wall";
 
+// Nothing here reads a request-time API, so the wall would otherwise be
+// prerendered once at build and never change. It reads the database per
+// request instead.
+export const dynamic = "force-dynamic";
+
 // No auth(), no redirect and no Nav: the wall renders the same for a visitor
 // with no session as for one with a session (FR-018).
 export default async function WallPage() {
