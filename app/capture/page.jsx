@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Nav } from "@/components/Nav";
 import { Card, Button, StatusBadge, Spinner } from "@/components/ui";
-import { PhotoInput, PhotoPreview, EmotionPicker } from "@/components/capture";
+import { PhotoInput, PhotoPreview, EmotionPicker, CameraCapture } from "@/components/capture";
 import { GeneratedResult } from "@/components/capture/GeneratedResult";
 import { useElapsedSeconds } from "@/hooks/useElapsedSeconds";
 import { EMOTIONS } from "@/lib/emotions.js";
@@ -99,7 +99,12 @@ export default function CapturePage() {
       <Card className="space-y-4 p-4">
         {!imageUrl && (
           <>
-            <PhotoInput value={photo} onChange={handlePhotoSelect} disabled={isGenerating || paused} />
+            {/* Choosing a photo is not a generation: it stays available while
+                generation is paused (FR-027). Only Generate is disabled. */}
+            <PhotoInput value={photo} onChange={handlePhotoSelect} disabled={isGenerating} />
+            {/* The camera hands its photo to the same handler the picker uses,
+                and stays usable while generation is paused (FR-022, FR-027). */}
+            <CameraCapture onPhoto={handlePhotoSelect} disabled={isGenerating} />
             <PhotoPreview src={preview} />
             <EmotionPicker
               emotion={feeling.emotion}

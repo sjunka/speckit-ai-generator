@@ -340,10 +340,14 @@ describe("Capture screen — the camera while generation is paused", () => {
   it("still accepts a picked file while paused", async () => {
     const fetchMock = await pauseGeneration();
     const callsBefore = fetchMock.mock.calls.length;
+    const before = screen.getByAltText(/selected/i).getAttribute("src");
 
-    await userEvent.upload(fileInput(), new File(["other"], "second.png", { type: "image/png" }));
+    expect(fileInput()).toBeEnabled();
+    await userEvent.upload(fileInput(), new File(["other-bytes"], "second.png", { type: "image/png" }));
 
-    await waitFor(() => expect(screen.getByAltText(/selected/i)).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByAltText(/selected/i).getAttribute("src")).not.toBe(before)
+    );
     expect(fetchMock.mock.calls).toHaveLength(callsBefore);
   });
 });
