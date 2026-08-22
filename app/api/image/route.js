@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { generations } from "@/lib/db.js";
+import { buildHint } from "@/lib/emotions.js";
 import { assertEnabled } from "@/lib/settings.js";
 import { generateImage } from "@/lib/higgsfield.js";
 import { store } from "@/lib/blob.js";
@@ -8,9 +9,13 @@ export const POST = async (request) => {
   const { userId } = await auth();
   if (!userId) return new Response("Unauthorized", { status: 401 });
 
-  const { photo, hint } = await request.json();
+  const { photo, emotion, level } = await request.json();
 
   try {
+    // Validation precedes the spend switch: an invalid emotion is a 400 even
+    // while generation is paused, and neither path contacts a paid provider.
+    const hint = buildHint(emotion, level);
+
     await assertEnabled();
 
     // Higgsfield takes a public image_url, not bytes, so the photo goes to blob first.
