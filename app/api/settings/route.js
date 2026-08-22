@@ -9,8 +9,7 @@ export const GET = async () => {
     return new Response(null, { status: 404 });
   }
 
-  const settings = await getSettings();
-  return Response.json(settings);
+  return Response.json(await getSettings());
 };
 
 export const PATCH = async (request) => {
@@ -22,11 +21,7 @@ export const PATCH = async (request) => {
 
   const [body, database] = await Promise.all([request.json(), db()]);
   const settings = database.collection("settings");
-
-  // Get current settings
   const current = await settings.findOne({ _id: "config" });
-
-  // Build update — _id stays out of $set, MongoDB rejects updating it
   const { _id, ...currentFields } = current ?? {};
   const update = {
     enabled: true,
@@ -35,7 +30,6 @@ export const PATCH = async (request) => {
     ...body,
   };
 
-  // Persist
   await settings.updateOne(
     { _id: "config" },
     { $set: update },

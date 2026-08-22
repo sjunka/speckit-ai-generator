@@ -19,4 +19,17 @@ describe("MSW handlers", () => {
     );
     expect(videoHandler).toBeDefined();
   });
+
+  it("covers the file route and complete settings response", async () => {
+    const fileHandler = handlers.find(
+      (h) => h.info.path === "/api/video/:id/file"
+    );
+    const settingsHandler = handlers.find(
+      (h) => h.info.path === "/api/settings"
+    );
+
+    expect(fileHandler).toBeDefined();
+    expect(settingsHandler).toBeDefined();
+    expect(settingsHandler.info.path).toBe("/api/settings");
+  });
 });

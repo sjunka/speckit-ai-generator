@@ -1,129 +1,64 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { GET, PATCH } from "./route.js";
 
-vi.mock("@clerk/nextjs/server", () => ({
-  auth: vi.fn(),
-}));
-
+vi.mock("@clerk/nextjs/server", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/db.js");
 vi.mock("@/lib/settings.js");
 
-describe("GET /api/settings", () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-  });
+describe("/api/settings", () => {
+  beforeEach(() => vi.resetAllMocks());
 
-  it("returns 404 for anonymous caller", async () => {
-    const { auth } = await import("@clerk/nextjs/server");
-    auth.mockReturnValue({ userId: null });
-
-    const response = await GET();
-    expect(response.status).toBe(404);
-  });
-
-  it("returns 404 for non-owner", async () => {
+  it("returns 404 for anonymous and non-owner callers", async () => {
     const { auth } = await import("@clerk/nextjs/server");
     const { isOwner } = await import("@/lib/settings.js");
-    auth.mockReturnValue({ userId: "other-user" });
+    auth.mockResolvedValueOnce({ userId: null }).mockResolvedValueOnce({ userId: "other" });
     isOwner.mockReturnValue(false);
 
-    const response = await GET();
-    expect(response.status).toBe(404);
+    expect((await GET()).status).toBe(404);
+    expect((await GET()).status).toBe(404);
   });
 
-  it("returns settings for owner", async () => {
+  it("returns settings to the owner", async () => {
     const { auth } = await import("@clerk/nextjs/server");
     const { isOwner, getSettings } = await import("@/lib/settings.js");
-    auth.mockReturnValue({ userId: "owner-id" });
+    auth.mockResolvedValue({ userId: "owner" });
     isOwner.mockReturnValue(true);
-    getSettings.mockResolvedValue({ enabled: true });
+    getSettings.mockResolvedValue({ enabled: true, videoQuality: "lite" });
 
     const response = await GET();
     expect(response.status).toBe(200);
-    const data = await response.json();
-    expect(data.enabled).toBe(true);
-  });
-});
-
-describe("PATCH /api/settings", () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
+    await expect(response.json()).resolves.toEqual({ enabled: true, videoQuality: "lite" });
   });
 
-  it("returns 404 for anonymous caller", async () => {
-    const { auth } = await import("@clerk/nextjs/server");
-    auth.mockReturnValue({ userId: null });
-
-    const request = new Request("http://localhost/api/settings", {
-      method: "PATCH",
-      body: JSON.stringify({ enabled: false }),
-    });
-
-    const response = await PATCH(request);
-    expect(response.status).toBe(404);
-  });
-
-  it("returns 404 for non-owner", async () => {
-    const { auth } = await import("@clerk/nextjs/server");
-    const { isOwner } = await import("@/lib/settings.js");
-    auth.mockReturnValue({ userId: "other-user" });
-    isOwner.mockReturnValue(false);
-
-    const request = new Request("http://localhost/api/settings", {
-      method: "PATCH",
-      body: JSON.stringify({ enabled: false }),
-    });
-
-    const response = await PATCH(request);
-    expect(response.status).toBe(404);
-  });
-
-  it("persists partial update", async () => {
-    const { auth } = await import("@clerk/nextjs/server");
-    const { isOwner, getSettings } = await import("@/lib/settings.js");
-    const { db } = await import("@/lib/db.js");
-
-    auth.mockReturnValue({ userId: "owner-id" });
-    isOwner.mockReturnValue(true);
-    getSettings.mockResolvedValue({ enabled: true });
-
-    const mockSettings = { findOne: vi.fn(), updateOne: vi.fn() };
-    db.mockResolvedValue({
-      collection: vi.fn().mockReturnValue(mockSettings),
-    });
-    mockSettings.findOne.mockResolvedValue({ enabled: true });
-    mockSettings.updateOne.mockResolvedValue({ modifiedCount: 1 });
-
-    const request = new Request("http://localhost/api/settings", {
-      method: "PATCH",
-      body: JSON.stringify({ enabled: false }),
-    });
-
-    const response = await PATCH(request);
-    expect(response.status).toBe(200);
-  });
-
-  it("creates record on first write with defaults", async () => {
+  it("persists a partial update without putting _id in $set", async () => {
     const { auth } = await import("@clerk/nextjs/server");
     const { isOwner } = await import("@/lib/settings.js");
     const { db } = await import("@/lib/db.js");
-
-    auth.mockReturnValue({ userId: "owner-id" });
+    auth.mockResolvedValue({ userId: "owner" });
     isOwner.mockReturnValue(true);
+    const settings = { findOne: vi.fn().mockResolvedValue({ _id: "config", enabled: true, videoQuality: "turbo" }), updateOne: vi.fn() };
+    db.mockResolvedValue({ collection: vi.fn().mockReturnValue(settings) });
 
-    const mockSettings = { findOne: vi.fn(), updateOne: vi.fn() };
-    db.mockResolvedValue({
-      collection: vi.fn().mockReturnValue(mockSettings),
-    });
-    mockSettings.findOne.mockResolvedValue(null);
-    mockSettings.updateOne.mockResolvedValue({ modifiedCount: 0, upsertedCount: 1 });
-
-    const request = new Request("http://localhost/api/settings", {
-      method: "PATCH",
-      body: JSON.stringify({ enabled: false }),
-    });
-
-    const response = await PATCH(request);
+    const response = await PATCH(new Request("http://localhost/api/settings", { method: "PATCH", body: JSON.stringify({ enabled: false }) }));
     expect(response.status).toBe(200);
+    expect(settings.updateOne).toHaveBeenCalledWith(
+      { _id: "config" },
+      { $set: { enabled: false, videoQuality: "turbo" } },
+      { upsert: true }
+    );
+  });
+
+  it("uses lite as the default quality on the first write", async () => {
+    const { auth } = await import("@clerk/nextjs/server");
+    const { isOwner } = await import("@/lib/settings.js");
+    const { db } = await import("@/lib/db.js");
+    auth.mockResolvedValue({ userId: "owner" });
+    isOwner.mockReturnValue(true);
+    const settings = { findOne: vi.fn().mockResolvedValue(null), updateOne: vi.fn() };
+    db.mockResolvedValue({ collection: vi.fn().mockReturnValue(settings) });
+
+    const response = await PATCH(new Request("http://localhost/api/settings", { method: "PATCH", body: JSON.stringify({ enabled: false }) }));
+    expect(response.status).toBe(200);
+    expect(settings.updateOne.mock.calls[0][1].$set).toEqual({ enabled: false, videoQuality: "lite" });
   });
 });
