@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui";
 import { GenerationCard } from "./GenerationCard";
@@ -9,13 +9,15 @@ import { PublishToggle } from "./PublishToggle";
 // useState and fetch, nothing more. The first page arrives as props from the
 // server render, so there is no useEffect here and nothing fetches on mount.
 export function GalleryList({ items: seed, hasMore: seedHasMore, page: seedPage = 0 }) {
-  const [items, setItems] = useState(seed);
-  const [hasMore, setHasMore] = useState(seedHasMore);
-  const [page, setPage] = useState(seedPage);
+  const [items, setItems] = useState(() => seed);
+  const [hasMore, setHasMore] = useState(() => seedHasMore);
+  // The page number is never rendered, only read by the handler that asks for
+  // the next one, so it lives in a ref rather than causing a render of its own.
+  const page = useRef(seedPage);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLoadMore = async () => {
-    const next = page + 1;
+    const next = page.current + 1;
     setIsLoading(true);
 
     try {
@@ -25,7 +27,7 @@ export function GalleryList({ items: seed, hasMore: seedHasMore, page: seedPage 
         const data = await response.json();
         setItems((current) => [...current, ...data.items]);
         setHasMore(data.hasMore);
-        setPage(next);
+        page.current = next;
       }
     } catch {
       // The list stays where it is.
